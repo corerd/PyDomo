@@ -87,6 +87,7 @@ def snap_shot(cfg):
 
 
 def parse_args():
+    from os.path import dirname, realpath
     from argparse import ArgumentParser, RawTextHelpFormatter
     usage = """Take a snapshots from a bunch of cameras.
 If none given, the configuration is read from the JSON file:
@@ -97,9 +98,10 @@ If none given, the configuration is read from the JSON file:
     print '%s v%s (C) 2015' % (parser.prog, VERSION)
 
     desc = "read the configuration from the CFG JSON file"
+    def_cfg_file = '%s/%s' % (dirname(realpath(__file__)), DEFAULT_CFG_FILE)
     parser.add_argument('-c', '--cfg', dest='cfg_file',
                             help=desc,
-                            default=DEFAULT_CFG_FILE)
+                            default=def_cfg_file)
     parser.add_argument('-v', '--version', action='version',
                         version='%%(prog)s %s' % VERSION)
     args = parser.parse_args()
@@ -112,8 +114,11 @@ def main():
     options = parse_args()
     print 'Read configuration from file:', options.cfg_file
 
-    cfg_data = ConfigDataLoad(options.cfg_file)
-    ## TODO handle the exceptions
+    try:
+        cfg_data = ConfigDataLoad(options.cfg_file)
+    except:
+        print 'Unable to load config'
+        return 1
 
     # Make the container warking directory
     warking_dir = cfg_data.data['datastore']
