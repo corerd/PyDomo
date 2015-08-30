@@ -1,0 +1,13 @@
+{
+    "_rem-desc": "CONFIGURATION TEMPLATE FOR CLOUD",
+
+    "_rem-definition_0": "dictionary keys beginning with _ are comments",
+    "_rem-definition_1": "metadata are vaules surrounded by the characters < and >",
+    "_howto-customize": "Replace the metadata with actual values",
+
+    "_rem-todo-first": "Copy this file in camrecordercfg.json",
+    "_rem-todo-after": "Customize the metadata",
+
+    "datastore": "<path-to-recorded-data>"
+
+}
