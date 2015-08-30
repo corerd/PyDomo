@@ -24,12 +24,20 @@
 
 
 import logging
+from os.path import dirname, join, realpath
 
 
 # Globals
 VERSION = '1.0'
 DEFAULT_CFG_FILE = 'camrecordercfg.json'
 LOG_FILE_NAME = 'camcorderlog.txt'
+
+DEFAULT_CFG_FILE_PATH = join(dirname(realpath(__file__)), DEFAULT_CFG_FILE)
+
+USAGE = """Take a snapshots from a bunch of cameras.
+If none given, the configuration is read from the JSON file:
+    %s
+""" % DEFAULT_CFG_FILE_PATH
 
 
 def mkdir(dir_name, verbose=False):
@@ -86,32 +94,11 @@ def snap_shot(cfg):
     return 0
 
 
-def parse_args():
-    from os.path import dirname, realpath
-    from argparse import ArgumentParser, RawTextHelpFormatter
-    usage = """Take a snapshots from a bunch of cameras.
-If none given, the configuration is read from the JSON file:
-    %s
-"""
-    parser = ArgumentParser(description=(usage % DEFAULT_CFG_FILE),
-                             formatter_class=RawTextHelpFormatter)
-    print '%s v%s (C) 2015' % (parser.prog, VERSION)
-
-    desc = "read the configuration from the CFG JSON file"
-    def_cfg_file = '%s/%s' % (dirname(realpath(__file__)), DEFAULT_CFG_FILE)
-    parser.add_argument('-c', '--cfg', dest='cfg_file',
-                            help=desc,
-                            default=def_cfg_file)
-    parser.add_argument('-v', '--version', action='version',
-                        version='%%(prog)s %s' % VERSION)
-    args = parser.parse_args()
-    return args
-
-
 def main():
+    from utils.cli import cfg_file_arg
     from camrecordercfg import ConfigDataLoad
 
-    options = parse_args()
+    options = cfg_file_arg(VERSION, USAGE, DEFAULT_CFG_FILE_PATH)
     print 'Read configuration from file:', options.cfg_file
 
     try:
