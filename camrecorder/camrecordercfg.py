@@ -36,14 +36,10 @@ class ConfigDataLoad:
 
 
 if __name__ == "__main__":
-    json_file = 'camshotcfg_template.json'
+    json_file = 'camrecordercfg.json.template'
     cfg = ConfigDataLoad(json_file)
 
-    print cfg.data['camshot-datastore']
-    print cfg.data['camshot-schedule']['start-time']
-    print cfg.data['camshot-schedule']['end-time']
-    print cfg.data['camshot-schedule']['seconds-to-wait']
-    print cfg.data['camshot-schedule']['suspend']
+    print cfg.data['datastore']
     for camera in cfg.data['cameras-list']:
         print camera['source']
         try:
