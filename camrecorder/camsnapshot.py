@@ -67,12 +67,25 @@ def mkdir(dir_name, verbose=False):
 
 
 def snap_shot(cfg):
+    '''Takes a snap shot from each camera in the list,
+    and saves the image in a file with the following path name:
+        <datastore-path>/SNAPSHOT_yymmdd/S_yymmdd_HHMMSS_XX.jpg
+    where yymmdd and HHMMSS is current local date and time in the format:
+        yy  is the year without century as a decimal number [00,99].
+        mm  is the month as a decimal number [01,12].
+        dd  is the day of the month as a decimal number [01,31].
+        HH  is the hour (24-hour clock) as a decimal number [00,23].
+        MM  is the minute as a decimal number [00,59].
+        SS  is the second as a decimal number [00,59].
+
+        XX  is the camera index as a decimal number [00,99].
+    '''
     from cameraman.camgrab import imageCapture
     from datetime import datetime
 
     # Make the grabbed picture file path
     now = datetime.now()
-    picturesDirName = '{0:s}/CAMSHOT_{1:%Y%m%d}'\
+    picturesDirName = '{0:s}/SNAPSHOT_{1:%y%m%d}'\
                                             .format(cfg.data['datastore'], now)
     if mkdir(picturesDirName) is False:
         logging.error('Error create directory %s' % picturesDirName)
@@ -82,7 +95,7 @@ def snap_shot(cfg):
     print 'Taking snap shots...'
     cameraIndex = 0
     for camera in cfg.data['cameras-list']:
-        pictureFileFullName = '{0:s}/CS{1:%Y%m%d_%H%M}_{2:02d}.jpg'\
+        pictureFileFullName = '{0:s}/S_{1:%y%m%d_%H%M%S}_{2:02d}.jpg'\
                                     .format(picturesDirName, now, cameraIndex)
         if imageCapture(camera, pictureFileFullName) is False:
             logging.warning('Fail get image from camera %s' % camera['source'])
