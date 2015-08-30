@@ -63,6 +63,8 @@ If none given, the configuration is read from the file:
 
 
 def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
+    from dropboxsrv import dropbox_upload
+
     print 'Persistent:', persistent
     local_remove = False
     for filename in filelist:
@@ -72,8 +74,7 @@ def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
             remote_dirpath = join(remote_dirpath, tail)
         remote_filepath = join(remote_dirpath, filename)
         local_filepath = join(local_dirpath, filename)
-        print 'Upload', local_filepath
-        print '--> to', remote_filepath
+        local_remove = dropbox_upload(local_filepath, remote_filepath)
         if persistent is False:
             if local_remove is True:
                 print 'Remove', local_filepath
