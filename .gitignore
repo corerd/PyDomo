@@ -1,3 +1,9 @@
+# Protecting Sensitive Information From Appearing in Public Repos,
+# such as configuration data.
+*.nja
+*.json
+local/
+ 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
