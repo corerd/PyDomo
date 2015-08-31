@@ -84,9 +84,9 @@ def snap_shot(cfg):
     from datetime import datetime
 
     # Make the grabbed picture file path
-    now = datetime.now()
     picturesDirName = '{0:s}/SNAPSHOT_{1:%y%m%d}'\
-                                            .format(cfg.data['datastore'], now)
+                                        .format(cfg.data['datastore'],
+                                                 datetime.now())
     if mkdir(picturesDirName) is False:
         logging.error('Error create directory %s' % picturesDirName)
         return 1
@@ -96,7 +96,9 @@ def snap_shot(cfg):
     cameraIndex = 0
     for camera in cfg.data['cameras-list']:
         pictureFileFullName = '{0:s}/S_{1:%y%m%d_%H%M%S}_{2:02d}.jpg'\
-                                    .format(picturesDirName, now, cameraIndex)
+                                    .format(picturesDirName,
+                                        datetime.now(),
+                                         cameraIndex)
         if imageCapture(camera, pictureFileFullName) is False:
             logging.warning('Fail get image from camera %s' % camera['source'])
         else:
