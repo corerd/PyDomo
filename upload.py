@@ -28,4 +28,12 @@ Ref. http://stackoverflow.com/a/7886092
 
 from cloud.upload import main
 
-exit(main())
+
+def run():
+    '''Returns status code
+    '''
+    return main()
+
+
+if __name__ == "__main__":
+    exit(run())

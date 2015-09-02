@@ -22,17 +22,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''Append to PYTHONPATH the path of the script from which it runs.
-Ref. http://stackoverflow.com/a/7886092
+
+'''Loop forever taking a snap shot from a camera and uploading to the cloud.
 '''
 
-from camrecorder.camsnapshot import main
+import camupload
+from time import sleep
+from datetime import datetime
+
+HOUR_START = 8
+HOUR_END = 18
+#WAIT_INTERVAL = 15*60  # 15 min
+WAIT_INTERVAL = 20
+
+
+def todayAt(today, hr, min=0, sec=0, micros=0):
+    '''Inspired from:
+    http://stackoverflow.com/a/9716793
+    '''
+    return today.replace(hour=hr, minute=min, second=sec, microsecond=micros)
 
 
 def run():
     '''Returns status code
     '''
-    return main()
+    while True:
+        now = datetime.now()
+        if now >= todayAt(now, HOUR_START) and now < todayAt(now, HOUR_END):
+            camupload.run()
+        print '%s: wait %d sec' % (now, WAIT_INTERVAL)
+        sleep(WAIT_INTERVAL)
+    return 0
 
 
 if __name__ == "__main__":

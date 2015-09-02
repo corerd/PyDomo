@@ -22,17 +22,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''Append to PYTHONPATH the path of the script from which it runs.
-Ref. http://stackoverflow.com/a/7886092
+
+'''Take a snap shot from a camera and upload to the cloud.
 '''
 
-from camrecorder.camsnapshot import main
+import camsnapshot
+import upload
 
 
 def run():
     '''Returns status code
     '''
-    return main()
+    ecode = camsnapshot.run()
+    ecode = upload.run()
+    return ecode
 
 
 if __name__ == "__main__":
