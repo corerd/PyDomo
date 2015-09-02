@@ -32,8 +32,7 @@ from datetime import datetime
 
 HOUR_START = 8
 HOUR_END = 18
-#WAIT_INTERVAL = 15*60  # 15 min
-WAIT_INTERVAL = 20
+WAIT_INTERVAL = 15 * 60  # 15 min
 
 
 def todayAt(today, hr, min=0, sec=0, micros=0):
