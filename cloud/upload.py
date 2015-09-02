@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 
+import logging
 from os import remove, rmdir, walk
 from os.path import dirname, join, realpath, split
 
@@ -65,7 +66,7 @@ If none given, the configuration is read from the file:
 def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
     from dropboxsrv import dropbox_upload
 
-    print 'Persistent:', persistent
+    #print 'Persistent:', persistent
     local_remove = False
     for filename in filelist:
         remote_dirpath = remote_datastore_name
@@ -77,7 +78,7 @@ def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
         local_remove = dropbox_upload(local_filepath, remote_filepath)
         if persistent is False:
             if local_remove is True:
-                print 'Remove', local_filepath
+                logging.info('Remove %s' % local_filepath)
                 remove(local_filepath)
 
 
@@ -92,7 +93,7 @@ def upload_datastore(local_datastore_path_name):
         if len(dirnames) == 0 and len(filenames) == 0:
             # dirpath is empty.
             if persistent is False:
-                print 'remove directory', dirpath
+                logging.info('remove directory %s' % dirpath)
                 rmdir(dirpath)
         else:
             upload_files(dirpath, filenames, datastore_name, persistent)
@@ -104,13 +105,16 @@ def main():
     from utils.cli import cfg_file_arg
     from cloudcfg import ConfigDataLoad
 
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
+                        level=logging.DEBUG)
+
     options = cfg_file_arg(VERSION, USAGE, DEFAULT_CFG_FILE_PATH)
-    print 'Read configuration from file:', options.cfg_file
+    logging.info('Read configuration from file: %s' % options.cfg_file)
 
     try:
         cfg_data = ConfigDataLoad(options.cfg_file)
     except:
-        print 'Unable to load config'
+        logging.error('Unable to load config')
         return 1
 
     return upload_datastore(cfg_data.data['datastore'])

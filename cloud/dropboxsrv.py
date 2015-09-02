@@ -30,6 +30,7 @@ Ref: https://github.com/andreafabrizi/Dropbox-Uploader
 '''
 
 
+import logging
 from utils.extcmd import ExtCmdRunError, runcmd
 
 
@@ -42,7 +43,7 @@ def dropbox_upload(local_file, remote_file):
     uploadcmd = 'dropbox_uploader.sh upload %s %s' % (local_file, remote_file)
     retcode = -1
     cmdoutput = ''
-    print 'Uploading', local_file
+    #print 'Uploading', local_file
     try:
         retcode, cmdoutput = runcmd(uploadcmd)
     except ExtCmdRunError as e:
@@ -50,7 +51,10 @@ def dropbox_upload(local_file, remote_file):
     if retcode == 0:
         success = True
     if len(cmdoutput) > 0:
-        #print the output of the external command
+        #display the output of the external command
         for outLine in cmdoutput.splitlines():
-            print 'runcmd: {0}'.format(outLine)
+            if success is True:
+                logging.info(outLine)
+            else:
+                logging.error(outLine)
     return success
