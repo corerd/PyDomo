@@ -32,7 +32,7 @@ from datetime import datetime
 
 HOUR_START = 8
 HOUR_END = 18
-IDLE_TIME_SECONDS = 60 * 60  # 15 min
+IDLE_TIME_SECONDS = 60 * 60  # 60 min
 
 
 def todayAt(today, hr, min=0, sec=0, micros=0):
