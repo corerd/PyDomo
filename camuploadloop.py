@@ -32,7 +32,7 @@ from datetime import datetime
 
 HOUR_START = 8
 HOUR_END = 18
-WAIT_INTERVAL = 15 * 60  # 15 min
+IDLE_TIME_SECONDS = 60 * 60  # 15 min
 
 
 def todayAt(today, hr, min=0, sec=0, micros=0):
@@ -49,8 +49,11 @@ def run():
         now = datetime.now()
         if now >= todayAt(now, HOUR_START) and now < todayAt(now, HOUR_END):
             camupload.run()
-        print '%s: wait %d sec' % (now, WAIT_INTERVAL)
-        sleep(WAIT_INTERVAL)
+        m, s = divmod(IDLE_TIME_SECONDS, 60)
+        h, m = divmod(m, 60)
+        print '%s: wait %d hours, %02d minutes, %02d seconds' % \
+                                                   (now, h, m, s)
+        sleep(IDLE_TIME_SECONDS)
     return 0
 
 
