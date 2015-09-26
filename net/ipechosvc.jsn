@@ -1,0 +1,19 @@
+{
+    "_rem-desc": "IP echo services",
+
+    "host-list": [
+        {
+            "url": "http://ipinfo.io/ip",
+            "_rem-rate-limits": "1,000 API requests per day"
+        },
+        {
+            "url": "http://ipecho.net/plain",
+            "_rem-rate-limits": "10 calls / minute over a period of 30 minutes"
+        },
+        {
+            "url": "http://ifconfig.me/ip",
+            "_rem-rate-limits": "unknown"
+        }
+    ]
+
+}
