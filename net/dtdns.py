@@ -83,7 +83,7 @@ class DtDNS_server:
         return ip
 
     def set_dns_ip(self, ip):
-        msg_set_ip="GET /api/autodns.cfm?id=%s&pw=%s&ip=%s HTTP/1.1\nHost: www.dtdns.com\nUser-Agent: Hugheshut-ssl\n\n" % (self.domain, self.passwd, ip)
+        msg_set_ip="GET /api/autodns.cfm?id=%s&pw=%s&ip=%s HTTP/1.1\nHost: www.dtdns.com\nUser-Agent: corerd-PyDomo\n\n" % (self.domain, self.passwd, ip)
         self.get_request_server(msg_set_ip)
 
 
