@@ -39,7 +39,7 @@ def search_from_service(url):
     '''Returns the public IP string from the service idientified by the url.
     If there are some communnication errors, returns an empty string.
     '''
-    #print("Service:", url, file=sys.stderr)
+    print("Service:", url, file=sys.stderr)
     try:
         r = get(url, timeout=10)
     except Exception:
