@@ -1,0 +1,33 @@
+{
+    "_rem-desc": "CONFIGURATION TEMPLATE FOR DNSUPDATE",
+
+    "_rem-definition_0": "dictionary keys beginning with _ are comments",
+    "_rem-definition_1": "metadata are vaules surrounded by the characters < and >",
+    "_howto-customize": "Replace the metadata with actual values",
+
+    "_rem-todo-first": "Copy this file in dnsupdatecfg.json",
+    "_rem-todo-after": "Customize the metadata",
+
+    "ssl-certs-file": "<path to ssl certs file>",
+
+    "_rem-dns-servers-list": "List of supported cameras",
+    "dns-servers-list": [
+        {
+            "server-url": "<url of the DNS hosting provider_0>",
+            "server-port": "<port of the DNS hosting provider_0>",
+            "domain": {
+                "host-url" : "<host name url>",
+                "password": "<account password>"
+            }
+        },
+
+        {
+            "server-url": "<url of the DNS hosting provider_n>",
+            "server-port": "<port of the DNS hosting provider_n>",
+            "domain": {
+                "host-url" : "<host name url>",
+                "password": "<account password>"
+            }
+        }
+    ]
+}

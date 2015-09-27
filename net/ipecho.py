@@ -31,8 +31,10 @@ import sys
 import json
 from re import sub
 from requests import get
+from os.path import dirname, join, realpath
 
-IPECHO_SERVICES_LIST_FILE = 'ipechosvc.jsn'
+SERVICES_LIST_FILE = 'ipechosvc.jsn'
+SERVICES_LIST_FILE_PATH = join(dirname(realpath(__file__)), SERVICES_LIST_FILE)
 
 
 def search_from_service(url):
@@ -60,10 +62,10 @@ def get_my_public_ip():
     my_ip = ''
 
     try:
-        json_data = open(IPECHO_SERVICES_LIST_FILE)
+        json_data = open(SERVICES_LIST_FILE_PATH)
         ipservices = json.load(json_data)
     except:
-        print('Unable to load service list file:', IPECHO_SERVICES_LIST_FILE,
+        print('Unable to load service list file:', SERVICES_LIST_FILE_PATH,
              file=sys.stderr)
         return my_ip
     json_data.close()
