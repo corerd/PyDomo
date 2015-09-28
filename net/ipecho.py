@@ -29,6 +29,7 @@ from __future__ import print_function
 
 import sys
 import json
+import logging
 from re import sub
 from requests import get
 from os.path import dirname, join, realpath
@@ -37,11 +38,11 @@ SERVICES_LIST_FILE = 'ipechosvc.jsn'
 SERVICES_LIST_FILE_PATH = join(dirname(realpath(__file__)), SERVICES_LIST_FILE)
 
 
-def search_from_service(url):
+def get_ip_from_service(url):
     '''Returns the public IP string from the service idientified by the url.
     If there are some communnication errors, returns an empty string.
     '''
-    print("Service:", url, file=sys.stderr)
+    #print("Service:", url, file=sys.stderr)
     try:
         r = get(url, timeout=10)
     except Exception:
@@ -71,10 +72,10 @@ def get_my_public_ip():
     json_data.close()
 
     for host in ipservices['host-list']:
-        my_ip = search_from_service(host['url'])
-        #print(">%s<" % my_ip, file=sys.stderr)
+        my_ip = get_ip_from_service(host['url'])
         if my_ip is not '':
             # Returns the first host response
+            logging.info('Get IP %s from service %s' % (my_ip, host['url']))
             break
     return my_ip
 

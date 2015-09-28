@@ -8,6 +8,8 @@
     "_rem-todo-first": "Copy this file in dnsupdatecfg.json",
     "_rem-todo-after": "Customize the metadata",
 
+    "working-dir": "<path to working directory>",
+
     "ssl-certs-file": "<path to ssl certs file>",
 
     "_rem-dns-servers-list": "List of supported cameras",
