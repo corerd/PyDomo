@@ -12,7 +12,7 @@
 
     "ssl-certs-file": "<path to ssl certs file>",
 
-    "_rem-dns-servers-list": "List of supported cameras",
+    "_rem-dns-servers-list": "List of supported DNS servers",
     "dns-servers-list": [
         {
             "server-url": "<url of the DNS hosting provider_0>",
