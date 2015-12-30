@@ -1,0 +1,33 @@
+{
+    "_rem-desc": "CONFIGURATION TEMPLATE FOR PYDOMOSVR",
+
+    "_rem-definition_0": "dictionary keys beginning with _ are comments",
+    "_rem-definition_1": "metadata are vaules surrounded by the characters < and >",
+    "_howto-customize": "Replace the metadata with actual values",
+
+    "_rem-todo-first": "Copy this file in PyDomoSvr.json",
+    "_rem-todo-after": "Customize the metadata",
+
+    "site-title": "Define the <title> and <navbar-brand> tags of the HTML document",
+
+    "_rem-camera-list": "List of supported cameras",
+    "cameras-list": [
+        {
+            "optional-auth": {
+                "user-name" : "<camera_0 user>",
+                "password": "<camera_0 password>"
+            },
+            "source": "<camera_0 protocol_and_address>"
+        },
+        {
+            "source": "<camera_1 protocol_and_address>"
+        },
+        {
+            "optional-auth": {
+                "user-name" : "<camera_2 user>",
+                "password": "<camera_2 password>"
+            },
+            "source": "<camera_2 protocol_and_address>"
+        }
+    ]
+}
