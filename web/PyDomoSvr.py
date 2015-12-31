@@ -52,7 +52,8 @@ python PyDomoSvr.py
 import urllib
 import base64
 from os.path import dirname, join, realpath
-from flask import Flask, render_template
+from functools import wraps
+from flask import Flask, render_template, request, Response
 from utils.cli import cfg_file_arg
 from utils.configdataload import ConfigData
 from cameraman.camgrab import grabImage
@@ -87,6 +88,38 @@ app = Flask(__name__.split('.')[0])
 
 '''Create an instance of the ConfigData class'''
 app_cfg = ConfigData()
+
+
+'''------------------- HTTP Basic Auth Decorator Begin -------------------------
+http://flask.pocoo.org/snippets/8/
+'''
+def check_auth(username, password):
+    """Check a valid username / password combination.
+
+    The username and password are read from the configuration file.
+    """
+    return username == app_cfg.data['site-auth']['user-name'] and \
+           password == app_cfg.data['site-auth']['password']
+
+
+
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+    return Response(
+    'Could not verify your access level for that URL.\n'
+    'You have to login with proper credentials', 401,
+    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+'''-------------------- HTTP Basic Auth Decorator End -----------------------'''
 
 
 def binary2uri(binary_data):
@@ -129,6 +162,7 @@ def get_snapshots_list():
 
 
 @app.route('/')
+@requires_auth
 def index():
     '''Register a view function for a given URL.
     http://flask.pocoo.org/docs/0.10/api/#flask.Flask.route

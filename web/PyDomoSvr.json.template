@@ -10,6 +10,11 @@
 
     "site-title": "Define the <title> and <navbar-brand> tags of the HTML document",
 
+    "site-auth": {
+        "user-name" : "<site_admin_username>",
+        "password": "<site_admin__password>"
+    },
+
     "_rem-camera-list": "List of supported cameras",
     "cameras-list": [
         {
