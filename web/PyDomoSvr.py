@@ -86,23 +86,45 @@ app = Flask(__name__.split('.')[0])
 
 
 '''Create an instance of the ConfigData class'''
-cfg_data = ConfigData()
+app_cfg = ConfigData()
 
 
-def base64_encode(binary_data):
+def binary2uri(binary_data):
+    '''Convert a raw binary bytearray into a data URI
+    to be embedded in a jinja template.
+    http://stackoverflow.com/a/25141121
+
+    An other approach can be found here:
+    http://stackoverflow.com/a/12035037
+
+    Returns the base64 encoded and interpolated binary_data.
+    '''
     base64_data = base64.b64encode(binary_data)
     return '{}'.format(urllib.quote(base64_data.rstrip('\n')))
 
 
 def get_snapshots_list():
-    '''Returns base64 encoded jpeg images list'''
+    '''Grab snapshots from a list of web cameras.
+    The list of web cameras is read from the configuration file.
+
+    Returns an image list encoded to base64 and interpolated in data URIs.
+    '''
     snapshots_list = []
-    for camera_desc in cfg_data.data['cameras-list']:
+    for camera_desc in app_cfg.data['cameras-list']:
+        '''The properties (ip address, optional credentials) of each web camera
+        are read from the configuration file as descriptor.
+        '''
         grab_ok, jpg_image = grabImage(camera_desc)
         if not grab_ok:
             # grabImage returns errors
+            # TODO error handler
             continue
-        snapshots_list.append(base64_encode(jpg_image))
+        '''
+        Snapshots are returned as jpeg bytearrays,
+        then they are encoded to base64 and interpolated
+        and appended to the list.
+        '''
+        snapshots_list.append(binary2uri(jpg_image))
     return snapshots_list
 
 
@@ -119,13 +141,13 @@ def index():
     '''
     return render_template('PyDomoSvr-main.html',
         jpeg_base64_list=get_snapshots_list(),
-        proj_name=cfg_data.data['site-title'])
+        proj_name=app_cfg.data['site-title'])
 
 
 def main():
     options = cfg_file_arg(VERSION, USAGE, DEFAULT_CFG_FILE_PATH)
     try:
-        cfg_data.load(options.cfg_file)
+        app_cfg.load(options.cfg_file)
     except:
         print 'Unable to load configuration from %s' % options.cfg_file
         return 1
