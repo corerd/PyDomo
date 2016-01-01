@@ -57,6 +57,8 @@ from flask import Flask, render_template, request, Response
 from utils.cli import cfg_file_arg
 from utils.configdataload import ConfigData
 from cameraman.camgrab import grabImage
+import serveHTTPS
+
 
 # Globals
 VERSION = '1.0'
@@ -185,6 +187,11 @@ def main():
     except:
         print 'Unable to load configuration from %s' % options.cfg_file
         return 1
+
+    context = serveHTTPS.load_certificate()
+    if context is not None:
+        print "HTTPS is enabled"
+        app.ssl_context = context
 
     # if debug support enabled, the server will reload itself on code changes,
     # and it will also provide you with a helpful debugger if things go wrong.
