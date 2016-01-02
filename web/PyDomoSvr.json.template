@@ -8,11 +8,20 @@
     "_rem-todo-first": "Copy this file in PyDomoSvr.json",
     "_rem-todo-after": "Customize the metadata",
 
-    "site-title": "Define the <title> and <navbar-brand> tags of the HTML document",
+    "_rem-site-configuration": "Host configuration parameters",
+    "site": {
+        "title": "Define the <title> and <navbar-brand> tags of the HTML document",
 
-    "site-auth": {
-        "user-name" : "<site_admin_username>",
-        "password": "<site_admin__password>"
+        "_rem-host-name": "Set to '0.0.0.0' to have the server available externally, otherwise 'localhost'",
+        "host": {
+            "name" : "<hostname_to_listen_on>",
+            "port": "<webserver_port>"
+        },
+
+        "auth": {
+            "user-name" : "<site_admin_username>",
+            "password": "<site_admin__password>"
+        }
     },
 
     "_rem-camera-list": "List of supported cameras",

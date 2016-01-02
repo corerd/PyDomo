@@ -100,8 +100,8 @@ def check_auth(username, password):
 
     The username and password are read from the configuration file.
     """
-    return username == app_cfg.data['site-auth']['user-name'] and \
-           password == app_cfg.data['site-auth']['password']
+    return username == app_cfg.data['site']['auth']['user-name'] and \
+           password == app_cfg.data['site']['auth']['password']
 
 
 
@@ -177,7 +177,7 @@ def index():
     '''
     return render_template('PyDomoSvr-main.html',
         jpeg_base64_list=get_snapshots_list(),
-        proj_name=app_cfg.data['site-title'])
+        proj_name=app_cfg.data['site']['title'])
 
 
 def main():
@@ -188,7 +188,8 @@ def main():
         print 'Unable to load configuration from %s' % options.cfg_file
         return 1
 
-    context = serveHTTPS.load_certificate()
+    #context = serveHTTPS.load_certificate()
+    context = None
     if context is not None:
         print "HTTPS is enabled"
         app.ssl_context = context
@@ -200,7 +201,7 @@ def main():
         app.debug = True
     else:
         app.debug = False
-    app.run()
+    app.run(host=app_cfg.data['site']['host']['name'], port=app_cfg.data['site']['host']['port'])
 
 
 if __name__ == "__main__":
