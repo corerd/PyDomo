@@ -201,7 +201,8 @@ def main():
         app.debug = True
     else:
         app.debug = False
-    app.run(host=app_cfg.data['site']['host']['name'], port=app_cfg.data['site']['host']['port'])
+    app.run(host=app_cfg.data['site']['host']['name'],
+             port=int(app_cfg.data['site']['host']['port']))
 
 
 if __name__ == "__main__":
