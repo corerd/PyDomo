@@ -31,8 +31,8 @@ from os import path
 import sys
 import traceback
 
-#import ssl
-from OpenSSL import SSL
+import ssl
+#from OpenSSL import SSL
 '''Require:
     libffi-dev
     libssl-dev
@@ -52,13 +52,14 @@ def load_certificate():
     ca_dir = path.join(path.dirname(__file__), 'CA')
     try:
         # using OpenSSL
-        context = SSL.Context(SSL.TLSv1_METHOD)
-        context.use_privatekey_file(path.join(ca_dir, 'server.key'))
-        context.use_certificate_file(path.join(ca_dir, 'server.crt'))
+        # context = SSL.Context(SSL.TLSv1_METHOD)
+        # context.use_privatekey_file(path.join(ca_dir, 'server.key'))
+        # context.use_certificate_file(path.join(ca_dir, 'server.crt'))
 
         # using ssl
-        # context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-        # context.load_cert_chain('server.crt', 'server.key')
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        context.load_cert_chain(path.join(ca_dir, 'server.crt'),
+                                       path.join(ca_dir, 'server.key'))
     except:
         context = None
         print "Exception in certificate loading:"
