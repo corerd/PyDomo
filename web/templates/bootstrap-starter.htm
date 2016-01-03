@@ -10,7 +10,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
-    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="icon" href="img/favicon.ico">
 
     <title>{{ proj_name }}</title>
 
@@ -21,10 +21,10 @@
      crossorigin="anonymous">
 
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <link href="{{ url_for('static', filename='css/ie10-viewport-bug-workaround.css') }}" rel="stylesheet">
+    <link href="css/ie10-viewport-bug-workaround.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="{{ url_for('static', filename='css/bootstrap-starter.css') }}" rel="stylesheet">
+    <link href="css/bootstrap-starter.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -58,15 +58,14 @@
     </nav>
 
     <!-- Main container -->
-    {% include "bootstrap-container.html" %}
-
+   {% include "bootstrap-container.htm" %}
 
     <!-- Footer -->
     <hr>
 
     <footer>
       <div class="container">
-        &copy; 2015 Corerd
+        &copy; 2016 Corerd
       </div>
     </footer>
 
@@ -84,7 +83,7 @@
     </script>
 
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="{{ url_for('static', filename='js/ie10-viewport-bug-workaround.js') }}"></script>
+    <script src="js/ie10-viewport-bug-workaround.js"></script>
 
 
 </body></html>
