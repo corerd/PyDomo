@@ -23,72 +23,87 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''Web server skeleton using Flask and Bootstrap
-
-Flask is a micro webdevelopment framework for Python:
-http://flask.pocoo.org/docs/0.10/
-http://flask.pocoo.org/docs/0.10/quickstart/#a-minimal-application
-
-Flask system-wide installation:
-sudo pip install Flask
-
-
-Bootstrap is an HTML, CSS, and JS framework for developing responsive,
-mobile first projects on the web:
-http://getbootstrap.com/
+'''Web server skeleton using SimpleHTTPServer and Bootstrap
 
 This web server skeleton is built on the Bootstrap Starter Template:
 http://getbootstrap.com/examples/starter-template/
 
 The above Bootstrap template has been customized to comply with
-the Jinja2 template engine used by Flask:
-http://flask.pocoo.org/docs/0.10/templating/
+the Jinja2 template engine:
+http://jinja.pocoo.org/docs/dev/
 
 
 To run the web server, enter the following line:
 python bootstrap-starter.py
 '''
 
-from os.path import basename, splitext
-from flask import Flask, render_template
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from os import curdir, sep
 
-'''Create an instance of the Flask class:
-http://flask.pocoo.org/docs/0.10/api/#application-object
+PORT_NUMBER = 5000
+STATIC_FILE_DIR = 'static'
 
-The first argument is the name of the application’s module or package.
-If you are using a single module (as in this example),
-__name__ is always the correct value.
-If you however are using a package, it’s usually recommended
-to hardcode the name of your package there.
-
-The assignment below is module / package independent:
-'''
-app = Flask(__name__.split('.')[0])
+'''GLOBALS'''
+static_endpoint = curdir + sep + STATIC_FILE_DIR
 
 
-'''Get the module file name.
-It will define the <title> and <navbar-brand> in the Bootstrap Starter Template
-HTML document rendered by Jinja2.
-'''
-this_module_name = splitext(basename(__file__))[0]
+class myHandler(BaseHTTPRequestHandler):
+    '''This class will handles any incoming request from #the browser.
 
+    Derived from: http://www.acmesystems.it/python_httpd
+    '''
+    #Handler for the GET requests
+    def do_GET(self):
+        if self.path == "/":
+            self.path = "/bootstrap-starter.html"
 
-'''Register a view function for a given URL.
-http://flask.pocoo.org/docs/0.10/api/#flask.Flask.route
+        try:
+            #Check the file extension required and
+            #set the right mime type
+            sendReply = False
+            if self.path.endswith(".html"):
+                mimetype = 'text/html'
+                sendReply = True
+            if self.path.endswith(".jpg"):
+                mimetype = 'image/jpg'
+                sendReply = True
+            if self.path.endswith(".gif"):
+                mimetype = 'image/gif'
+                sendReply = True
+            if self.path.endswith(".ico"):
+                mimetype = 'image/x-icon'
+                sendReply = True
+            if self.path.endswith(".js"):
+                mimetype = 'application/javascript'
+                sendReply = True
+            if self.path.endswith(".css"):
+                mimetype = 'text/css'
+                sendReply = True
 
-Use the route() decorator to tell Flask what URL should trigger our function.
-The function is given a name which is also used to generate URLs
-for that particular function.
-'''
-@app.route('/')
-def index():
-    '''Returns the HTML document we want to display in the user’s browser.'''
-    return render_template('bootstrap-starter.html', proj_name=this_module_name)
+            if sendReply is True:
+                #Open the static file requested and send it
+                static_file_path = static_endpoint + self.path
+                print 'Serving...', static_file_path
+                f = open(static_file_path)
+                self.send_response(200)
+                self.send_header('Content-type', mimetype)
+                self.end_headers()
+                self.wfile.write(f.read())
+                f.close()
+            return
 
+        except IOError:
+            self.send_error(404, 'File Not Found: %s' % self.path)
 
-if __name__ == "__main__":
-    # if debug support is enabled, the server will reload itself on code changes,
-    # and it will also provide you with a helpful debugger if things go wrong.
-    app.debug = True
+try:
+    #Create a web server and define the handler to manage the
+    #incoming request
+    server = HTTPServer(('', PORT_NUMBER), myHandler)
+    print 'Started httpserver on port ', PORT_NUMBER
 
-    app.run()
+    #Wait forever for incoming htto requests
+    server.serve_forever()
+
+except KeyboardInterrupt:
+    print 'Keyboard Interrupt received, shutting down the web server'
+    server.socket.close()
