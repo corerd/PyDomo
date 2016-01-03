@@ -24,6 +24,7 @@
 # SOFTWARE.
 
 '''Web server skeleton using SimpleHTTPServer and Bootstrap
+with Basic Authentication.
 
 This web server skeleton is built on the Bootstrap Starter Template:
 http://getbootstrap.com/examples/starter-template/
@@ -37,73 +38,115 @@ To run the web server, enter the following line:
 python bootstrap-starter.py
 '''
 
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from BaseHTTPServer import HTTPServer
+from SimpleHTTPServer import SimpleHTTPRequestHandler
 from os import curdir, sep
+import base64
 
 PORT_NUMBER = 5000
 STATIC_FILE_DIR = 'static'
 
 '''GLOBALS'''
+auth_key = ""
 static_endpoint = curdir + sep + STATIC_FILE_DIR
 
 
-class myHandler(BaseHTTPRequestHandler):
-    '''This class will handles any incoming request from #the browser.
+class AuthHandler(SimpleHTTPRequestHandler):
+    '''Main class to present webpages and basic authentication.
 
-    Derived from: http://www.acmesystems.it/python_httpd
+    https://gist.github.com/fxsjy/5465353
     '''
-    #Handler for the GET requests
+    def do_HEAD(self):
+        '''send header'''
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    def do_AUTHHEAD(self):
+        '''send header'''
+        self.send_response(401)
+        self.send_header('WWW-Authenticate',
+                         'Basic realm=\"Bootstrap starter demo\"')
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
     def do_GET(self):
+        ''' Present frontpage with user authentication. '''
+        global auth_key
+        if self.headers.getheader('Authorization') is None:
+            self.do_AUTHHEAD()
+            self.wfile.write('no auth header received')
+        elif self.headers.getheader('Authorization') == 'Basic ' + auth_key:
+            self.webpage_handle()
+        else:
+            self.do_AUTHHEAD()
+            self.wfile.write(self.headers.getheader('Authorization'))
+            self.wfile.write('not authenticated')
+
+    def webpage_handle(self):
+        '''Handler for any other incoming request after authentication.
+
+        Derived from: http://www.acmesystems.it/python_httpd
+        '''
         if self.path == "/":
             self.path = "/bootstrap-starter.html"
 
-        try:
-            #Check the file extension required and
-            #set the right mime type
-            sendReply = False
-            if self.path.endswith(".html"):
-                mimetype = 'text/html'
-                sendReply = True
-            if self.path.endswith(".jpg"):
-                mimetype = 'image/jpg'
-                sendReply = True
-            if self.path.endswith(".gif"):
-                mimetype = 'image/gif'
-                sendReply = True
-            if self.path.endswith(".ico"):
-                mimetype = 'image/x-icon'
-                sendReply = True
-            if self.path.endswith(".js"):
-                mimetype = 'application/javascript'
-                sendReply = True
-            if self.path.endswith(".css"):
-                mimetype = 'text/css'
-                sendReply = True
+        #Check the file extension required and
+        #set the right mime type
+        sendReply = False
+        if self.path.endswith(".html"):
+            mimetype = 'text/html'
+            sendReply = True
+        if self.path.endswith(".jpg"):
+            mimetype = 'image/jpg'
+            sendReply = True
+        if self.path.endswith(".gif"):
+            mimetype = 'image/gif'
+            sendReply = True
+        if self.path.endswith(".ico"):
+            mimetype = 'image/x-icon'
+            sendReply = True
+        if self.path.endswith(".js"):
+            mimetype = 'application/javascript'
+            sendReply = True
+        if self.path.endswith(".css"):
+            mimetype = 'text/css'
+            sendReply = True
 
-            if sendReply is True:
-                #Open the static file requested and send it
-                static_file_path = static_endpoint + self.path
-                print 'Serving...', static_file_path
-                f = open(static_file_path)
+        if sendReply is True:
+            #Open the static file requested and send it
+            static_file_path = static_endpoint + self.path
+            try:
+                static_file = open(static_file_path)
                 self.send_response(200)
                 self.send_header('Content-type', mimetype)
                 self.end_headers()
-                self.wfile.write(f.read())
-                f.close()
-            return
+                self.wfile.write(static_file.read())
+                static_file.close()
+            except IOError:
+                self.send_error(404, 'File Not Found: %s' % self.path)
 
-        except IOError:
-            self.send_error(404, 'File Not Found: %s' % self.path)
 
-try:
-    #Create a web server and define the handler to manage the
-    #incoming request
-    server = HTTPServer(('', PORT_NUMBER), myHandler)
+def start_server(user, password):
+    '''Create a web server and
+    define the handler to manage the incoming request
+    '''
+    global auth_key
+    auth_key = base64.b64encode('%s:%s' % (user, password))
+    server = HTTPServer(('', PORT_NUMBER), AuthHandler)
     print 'Started httpserver on port ', PORT_NUMBER
+    try:
+        '''Wait forever for incoming http requests till CTRL-C is pressed'''
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print
+        print 'Keyboard Interrupt received, shutting down the web server...'
+        server.socket.close()
 
-    #Wait forever for incoming htto requests
-    server.serve_forever()
 
-except KeyboardInterrupt:
-    print 'Keyboard Interrupt received, shutting down the web server'
-    server.socket.close()
+def main():
+    start_server('pippo', 'pluto')
+
+
+if __name__ == "__main__":
+    exit(main())
