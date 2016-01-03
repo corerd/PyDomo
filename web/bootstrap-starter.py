@@ -24,7 +24,7 @@
 # SOFTWARE.
 
 '''Web server skeleton using SimpleHTTPServer and Bootstrap
-with Basic Authentication.
+with Basic Authentication and SSL support.
 
 This web server skeleton is built on the Bootstrap Starter Template:
 http://getbootstrap.com/examples/starter-template/
@@ -41,9 +41,10 @@ python bootstrap-starter.py
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from os import curdir, sep
+import ssl
 import base64
 
-PORT_NUMBER = 5000
+PORT_NUMBER = 4443
 STATIC_FILE_DIR = 'static'
 
 '''GLOBALS'''
@@ -127,25 +128,32 @@ class AuthHandler(SimpleHTTPRequestHandler):
                 self.send_error(404, 'File Not Found: %s' % self.path)
 
 
-def start_server(user, password):
-    '''Create a web server and
-    define the handler to manage the incoming request
+def start_server(user, password, ssl_certificate, server_key):
+    '''Create an HTTPS server server and
+    define the handler to manage the incoming request.
+
+    https://www.piware.de/2011/01/creating-an-https-server-in-python/
     '''
     global auth_key
     auth_key = base64.b64encode('%s:%s' % (user, password))
-    server = HTTPServer(('', PORT_NUMBER), AuthHandler)
-    print 'Started httpserver on port ', PORT_NUMBER
+    httpd = HTTPServer(('', PORT_NUMBER), AuthHandler)
+    httpd.socket = ssl.wrap_socket(httpd.socket,
+                                   certfile=ssl_certificate,
+                                   keyfile=server_key,
+                                   server_side=True)
+    print 'Started HTTPS server on port ', PORT_NUMBER
+    # Debug at https://localhost:PORT/
     try:
         '''Wait forever for incoming http requests till CTRL-C is pressed'''
-        server.serve_forever()
+        httpd.serve_forever()
     except KeyboardInterrupt:
         print
         print 'Keyboard Interrupt received, shutting down the web server...'
-        server.socket.close()
+        httpd.socket.close()
 
 
 def main():
-    start_server('pippo', 'pluto')
+    start_server('pippo', 'pluto', './CA/server.crt', './CA/server.key')
 
 
 if __name__ == "__main__":
