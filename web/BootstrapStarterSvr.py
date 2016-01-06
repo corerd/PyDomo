@@ -238,18 +238,22 @@ class BootstrapStarterApp:
         self.host_port = int(host_data['port'])
         if auth_data is None:
             '''Create an HTTP server'''
-            self.httpd = HTTPServer((self.host_name, self.host_port), WebPagesHandler)
+            self.httpd = HTTPServer((self.host_name, self.host_port),
+                                                            WebPagesHandler)
         else:
             '''Create an HTTPS server
             https://www.piware.de/2011/01/creating-an-https-server-in-python/
             '''
             if not path.exists(auth_data['keyfile']):
-                raise Exception('BootstrapStarterApp', 'Missing key file %s' % auth_data['keyfile'])
+                raise Exception('BootstrapStarterApp',
+                            'Missing key file %s' % auth_data['keyfile'])
             if not path.exists(auth_data['certificate']):
-                raise Exception('BootstrapStarterApp', 'Missing cert file %s' % auth_data['certificate'])
+                raise Exception('BootstrapStarterApp',
+                        'Missing cert file %s' % auth_data['certificate'])
 
             WebAuthPagesHandler.set_auth_key(auth_data['credentials'])
-            self.httpd = HTTPServer((self.host_name, self.host_port), WebAuthPagesHandler)
+            self.httpd = HTTPServer((self.host_name, self.host_port),
+                                                        WebAuthPagesHandler)
             self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
                                            certfile=auth_data['certificate'],
                                            keyfile=auth_data['keyfile'],
@@ -257,7 +261,8 @@ class BootstrapStarterApp:
 
     def run(self):
         '''Wait forever for incoming http requests till CTRL-C is pressed'''
-        print('BootstrapStarter server %s running on port %d' % (self.host_name, self.host_port))
+        print('BootstrapStarter server %s running on port %d' %
+                                            (self.host_name, self.host_port))
         try:
             self.httpd.serve_forever()
         except KeyboardInterrupt:
@@ -273,22 +278,22 @@ def main():
 
     if AUTH is True:
         host_cfg = {
-            "name" : "",
+            "name": "",
             "port": HTTPS_PORT
             # Debug at https://localhost:HTTPS_PORT/
         }
         auth_cfg = {
-            'credentials' : {
-                'user-name' : "pippo",
+            'credentials': {
+                'user-name': "pippo",
                 'password': "pluto"
             },
-            'certificate' : SSL_CFG_FILES_DIR + 'server.crt',
-            'keyfile' : SSL_CFG_FILES_DIR + 'server.key',
+            'certificate': SSL_CFG_FILES_DIR + 'server.crt',
+            'keyfile': SSL_CFG_FILES_DIR + 'server.key',
         }
         app = BootstrapStarterApp(host_cfg, auth_data=auth_cfg)
     else:
         host_cfg = {
-            "name" : "",
+            "name": "",
             "port": HTTP_PORT
             # Debug at http://localhost:HTTP_PORT/
         }
