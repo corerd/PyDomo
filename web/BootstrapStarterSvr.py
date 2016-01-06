@@ -33,9 +33,6 @@ http://getbootstrap.com/examples/starter-template/
 
 Such Bootstrap template is customized to comply with Jinja2 template engine:
 http://jinja.pocoo.org/docs/dev/
-
-To run the web server, enter the following line:
-python bootstrap-starter.py
 '''
 
 from __future__ import print_function
