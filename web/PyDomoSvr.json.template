@@ -17,10 +17,13 @@
             "name" : "<hostname_to_listen_on>",
             "port": "<webserver_port>"
         },
-
         "auth": {
             "user-name" : "<site_admin_username>",
             "password": "<site_admin__password>"
+        },
+        "ssl": {
+            "certfile" : "<ssl certificate>",
+            "keyfile" : "<ssl private key>"
         }
     },
 
