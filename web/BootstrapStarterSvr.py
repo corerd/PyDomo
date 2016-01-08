@@ -103,7 +103,7 @@ STATIC_ENDPOINT = THIS_MODULE_DIR + STATIC_FILES_DIR
 '''CONFIGURATION DATA'''
 HTTP_PORT = '8080'
 HTTPS_PORT = '4443'
-SSL_CFG_FILES_DIR = THIS_MODULE_DIR + 'CA' + sep
+SSL_CFG_FILES_DIR = '/etc/ssl/BootstrapStarterSvr/'
 
 
 class WebPagesHandler(SimpleHTTPRequestHandler):
