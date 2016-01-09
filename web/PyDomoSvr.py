@@ -56,7 +56,7 @@ def main():
         conf.load(options.cfg_file)
         app = PyDomoApp(conf.data, debug=options.debug)
     except:
-        print("Errors found")
+        raise
         return 1
 
     if options.debug is True:
