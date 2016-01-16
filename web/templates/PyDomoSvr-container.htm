@@ -6,7 +6,11 @@
     <h1>Camera Snapshots</h1>
     {% for jpeg_base64 in jpeg_base64_list %}
         <hr>
-        <img src="data:image/jpeg;base64,{{ jpeg_base64 }}" class="img-responsive" alt="Responsive image">
+        {% if jpeg_base64 %}
+            <img src="data:image/jpeg;base64,{{ jpeg_base64 }}" class="img-responsive" alt="Camera snap shot">
+        {% else %}
+            <img src="img/camera_not_found.png" class="img-responsive" alt="Camera not found">
+        {% endif %}
     {% endfor %}
   </div>
 

@@ -133,16 +133,17 @@ def get_snapshots_list(cameras_list):
         are read from the configuration file as descriptor.
         '''
         grab_ok, jpg_image = grabImage(camera_desc)
-        if not grab_ok:
-            # grabImage returns errors
-            # TODO error handler
-            continue
-        '''
-        Snapshots are returned as jpeg bytearrays,
-        then they are encoded to base64 and interpolated
-        and appended to the list.
-        '''
-        snapshots_list.append(binary2uri(jpg_image))
+        if grab_ok is True:
+            '''Snapshots are returned as jpeg bytearrays,
+            then they are encoded to base64 and interpolated
+            and appended to the list.
+            '''
+            snapshots_list.append(binary2uri(jpg_image))
+        else:
+            '''grabImage returns errors
+            return an empty string
+            '''
+            snapshots_list.append(None)
     return snapshots_list
 
 
@@ -184,6 +185,9 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
             sendReply = True
         if self.path.endswith(".jpg"):
             mimetype = 'image/jpg'
+            sendReply = True
+        if self.path.endswith(".png"):
+            mimetype = 'image/png'
             sendReply = True
         if self.path.endswith(".gif"):
             mimetype = 'image/gif'
