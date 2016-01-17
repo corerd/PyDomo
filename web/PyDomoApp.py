@@ -33,6 +33,11 @@ http://getbootstrap.com/examples/starter-template/
 
 Such Bootstrap template is customized to comply with Jinja2 template engine:
 http://jinja.pocoo.org/docs/dev/
+
+The simple web server from the python standard library is easy to improve to:
+- answer several requests at the same time, and
+- cancel a connection when the client stops responding.
+http://stackp.online.fr/?p=23
 '''
 
 from __future__ import print_function
@@ -40,6 +45,7 @@ from __future__ import print_function
 from os import curdir, sep, path
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
+from SocketServer import ThreadingMixIn
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from cameraman.camgrab import grabImage
 import ssl
@@ -150,7 +156,14 @@ def get_snapshots_list(cameras_list):
 class WebPagesHandler(SimpleHTTPRequestHandler):
     '''Main class to present webpages.
     http://www.acmesystems.it/python_httpd
+
+    Cancel a connection when the client stops responding.
+    This raises a socket.timeout exception.
+    See: http://stackp.online.fr/?p=23
     '''
+
+    # Class-wide values
+    socket_timeout = 20  # seconds
     site_title = ""
 
     @classmethod
@@ -160,6 +173,14 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
     @classmethod
     def get_site_title(cls):
         return cls.site_title
+
+    def setup(self):
+        '''Sets a timeout on the socket
+        Abandon request handling when client has not responded
+        for socket_timeout time.
+        '''
+        self.request.settimeout(self.socket_timeout)
+        SimpleHTTPRequestHandler.setup(self)
 
     def do_mimetype_HEAD(self, mimetype):
         '''send header according to mimetype'''
@@ -275,6 +296,43 @@ class WebAuthPagesHandler(WebPagesHandler):
             self.wfile.write('not authenticated')
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    '''Improve BaseHTTPServer.HTTPServer:
+    - serves multiple requests simultaneously
+    - catches socket.timeout and socket.error exceptions (raised from
+      RequestHandler)
+    See: http://stackp.online.fr/?p=23
+    '''
+    def __init__(self, *args):
+        HTTPServer. __init__(self, *args)
+
+    def process_request_thread(self, request, client_address):
+        '''Overrides SocketServer.ThreadingMixIn.process_request_thread
+        in order to catch socket.timeout
+        '''
+        from socket import error, timeout
+        try:
+            self.finish_request(request, client_address)
+            self.close_request(request)
+        except timeout:
+            self.server_log(client_address[0],
+                 'Timeout during request processing')
+        except error, e:
+            self.server_log(client_address[0],
+                 '%s during request processing' % e)
+        except:
+            self.handle_error(request, client_address)
+            self.close_request(request)
+
+    def server_log(self, client, message):
+        '''Logs an arbitrary message to sys.stderr.'''
+        from datetime import datetime
+        from sys import stderr
+        print("%s - - [%s] \"%s\"" %
+             (client, datetime.now().strftime("%d/%b/%Y %H:%M:%S"), message),
+                file=stderr)
+
+
 class PyDomoApp:
     '''Web server skeleton class with optional Basic Authentication support.
     '''
@@ -289,7 +347,7 @@ class PyDomoApp:
         self.host_port = int(app_cfg['site']['host']['port'])
         if debug is True:
             '''Create an HTTP server'''
-            self.httpd = HTTPServer((self.host_name, self.host_port),
+            self.httpd = ThreadedHTTPServer((self.host_name, self.host_port),
                                                             WebPagesHandler)
         else:
             '''Create an HTTPS server
@@ -303,7 +361,7 @@ class PyDomoApp:
                     'Missing cert file %s' % app_cfg['site']['ssl']['certfile'])
 
             WebAuthPagesHandler.set_auth_key(app_cfg['site']['auth'])
-            self.httpd = HTTPServer((self.host_name, self.host_port),
+            self.httpd = ThreadedHTTPServer((self.host_name, self.host_port),
                                                         WebAuthPagesHandler)
             self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
                                    certfile=app_cfg['site']['ssl']['certfile'],
@@ -312,15 +370,14 @@ class PyDomoApp:
 
     def run(self):
         '''Wait forever for incoming http requests till CTRL-C is pressed'''
-        print('PyDomo server %s running on port %d' %
+        self.httpd.server_log('', 'PyDomo server %s running on port %d' %
                                             (self.host_name, self.host_port))
         try:
             self.httpd.serve_forever()
         except KeyboardInterrupt:
-            print(' Keyboard Interrupt detected!')
+            self.httpd.server_log('', ' Keyboard Interrupt detected!')
         finally:
-            print('Shutting down the server...')
-            #self.httpd.socket.close()
+            self.httpd.server_log('', 'Shutting down the server...')
             self.httpd.server_close()
 
 
