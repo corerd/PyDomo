@@ -363,10 +363,18 @@ class PyDomoApp:
             WebAuthPagesHandler.set_auth_key(app_cfg['site']['auth'])
             self.httpd = ThreadedHTTPServer((self.host_name, self.host_port),
                                                         WebAuthPagesHandler)
+            # SSL Socket creation
             self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
                                    certfile=app_cfg['site']['ssl']['certfile'],
                                    keyfile=app_cfg['site']['ssl']['keyfile'],
                                    server_side=True)
+            '''Use SSL Contexts (New from Python 2.7.9)
+            ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            ssl_ctx.load_cert_chain(app_cfg['site']['ssl']['certfile'],
+            keyfile=app_cfg['site']['ssl']['keyfile'])
+            self.httpd.socket = ssl_ctx.wrap_socket(self.httpd.socket,
+                                                    server_side=True)
+            '''
 
     def run(self):
         '''Wait forever for incoming http requests till CTRL-C is pressed'''
