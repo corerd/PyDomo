@@ -29,6 +29,8 @@ Jinja2 engine to render Bootstrap templates
 
 from __future__ import print_function
 
+from pwd import getpwnam
+from os import getuid, setuid
 from os.path import dirname, join, realpath
 from utils.cli import cfg_file_arg
 from PyDomoApp import PyDomoApp
@@ -61,6 +63,12 @@ def main():
 
     if options.debug is True:
         print('Debug support is enabled')
+
+    if getuid() == 0:
+        '''If root, drop privileges'''
+        newuid = getpwnam(conf.data['daemon']['user-name']).pw_uid
+        setuid(newuid)
+
     app.run()
 
 

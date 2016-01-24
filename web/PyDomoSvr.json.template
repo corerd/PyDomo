@@ -8,6 +8,11 @@
     "_rem-todo-first": "Copy this file in PyDomoSvr.json",
     "_rem-todo-after": "Customize the metadata",
 
+    "_rem-daemon-configuration": "Daemon configuration parameters",
+    "daemon": {
+        "user-name": "Low privilege user name"
+    },
+
     "_rem-site-configuration": "Host configuration parameters",
     "site": {
         "title": "Define the <title> and <navbar-brand> tags of the HTML document",
