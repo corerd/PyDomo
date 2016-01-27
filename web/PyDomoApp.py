@@ -377,13 +377,15 @@ class PyDomoApp:
             '''
 
     def run(self):
-        '''Wait forever for incoming http requests till CTRL-C is pressed'''
+        '''Wait forever for incoming http requests
+        till CTRL-C (SIGINT) event is detected.
+        '''
         self.httpd.server_log('', 'PyDomo server %s running on port %d' %
                                             (self.host_name, self.host_port))
         try:
             self.httpd.serve_forever()
         except KeyboardInterrupt:
-            self.httpd.server_log('', ' Keyboard Interrupt detected!')
+            self.httpd.server_log('', 'Process stopped by the user!')
         finally:
             self.httpd.server_log('', 'Shutting down the server...')
             self.httpd.server_close()
