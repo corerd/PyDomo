@@ -42,17 +42,17 @@ from __future__ import print_function
 from threading import Event, Thread
 
 
-class ThreadingTimer(Thread):
+class ThreadingTimers(Thread):
     '''Create a reusable timer.
     A callback function will run after interval seconds have passed.
     '''
     def __init__(self, on_timeout):
         '''Callback function will run after interval seconds have passed'''
-        super(ThreadingTimer, self).__init__()
+        super(ThreadingTimers, self).__init__()
         self.interval = 0
         self.cbk_ontimeout = on_timeout
-        self.start_evt = Event()
-        self.timer_evt = Event()
+        self.run_evt = Event()
+        self.stop_evt = Event()
         self._f_running = False
         self._f_timing = False
 
@@ -63,23 +63,23 @@ class ThreadingTimer(Thread):
         '''
         if self.is_alive() is not True:
             self._f_running = True
-            super(ThreadingTimer, self).start()
+            super(ThreadingTimers, self).start()
         if self.is_timing() is True:
             self.cancel()
         self.interval = interval
         self._f_timing = True
-        self.start_evt.set()
+        self.run_evt.set()
 
     def run(self):
         while self._f_running is True:
-            self.start_evt.wait()
+            self.run_evt.wait()
             if self._f_running is not True:
                 break
-            self.start_evt.clear()
-            self.timer_evt.wait(self.interval)
-            if self.timer_evt.is_set() is not True:
+            self.run_evt.clear()
+            self.stop_evt.wait(self.interval)
+            if self.stop_evt.is_set() is not True:
                 self.cbk_ontimeout()
-            self.timer_evt.clear()
+            self.stop_evt.clear()
             self._f_timing = False
 
     def is_timing(self):
@@ -88,22 +88,21 @@ class ThreadingTimer(Thread):
 
     def cancel(self):
         '''Stop the timer, cancel the execution of the timer's action.'''
-        self.timer_evt.set()
+        self.stop_evt.set()
 
-    def terminate(self, force_cancel=False):
+    def terminate(self, timeout=False):
         '''Kill and wait until the thread terminates.
-        if 'force_cancel' then cancel the timer,
-        otherwise wait untill interval seconds have passed.
+        if 'timeout' then wait untill interval seconds have passed.
         '''
         self._f_running = False
-        self.start_evt.set()
-        if force_cancel is True:
+        if timeout is not True:
             self.cancel()
+        self.run_evt.set()
         self.join()
 
 
 if __name__ == '__main__':
-    '''ThreadingTimer Class Demo'''
+    '''ThreadingTimers Class Demo'''
     import time
     import logging
 
@@ -113,9 +112,9 @@ if __name__ == '__main__':
     def time_spent():
         logging.debug('done waiting timer')
 
-    t1 = ThreadingTimer(time_spent)
+    t1 = ThreadingTimers(time_spent)
     t1.setName('t1')
-    t2 = ThreadingTimer(time_spent)
+    t2 = ThreadingTimers(time_spent)
     t2.setName('t2')
 
     logging.debug('starting timers...')
