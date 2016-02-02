@@ -39,6 +39,7 @@ http://www.bogotobogo.com/python/Multithread/python_multithreading_subclassing_T
 '''
 
 from __future__ import print_function
+from time import sleep
 from threading import Event, Thread
 
 
@@ -102,51 +103,173 @@ class ThreadingTimers(Thread):
 
 
 if __name__ == '__main__':
-    '''ThreadingTimers Class Demo'''
-    import time
+    '''ThreadingTimers Test Bench'''
+    from time import time
     import logging
 
     logging.basicConfig(level=logging.DEBUG,
                         format='(%(threadName)-9s) %(message)s',)
 
-    def time_spent():
-        logging.debug('done waiting timer')
+    class UT_ThreadingTimers(object):
+        '''Unit test for ThreadingTimers class'''
+        def __init__(self, timer_name):
+            self.start_time = 0
+            self.interval_time = 0
+            self.timer = ThreadingTimers(self.on_timeout)
+            self.timer.setName(timer_name)
+            logging.debug('Unit Test for %s has been created' %
+                                                        self.timer.getName())
 
-    t1 = ThreadingTimers(time_spent)
-    t1.setName('t1')
-    t2 = ThreadingTimers(time_spent)
-    t2.setName('t2')
+        def on_timeout(self):
+            delta = time() - self.start_time
+            logging.debug('compare elapesed %fs with given %fs time' %
+                                                (delta, self.interval_time))
+            if delta < self.interval_time:
+                logging.debug('FAIL: terminated prematurely')
+            else:
+                logging.debug('done!')
 
-    logging.debug('starting timers...')
+        def start_timer(self, interval):
+            '''Wait an interval of time'''
+            self.interval_time = interval
+            self.start_time = time()
+            self.timer.start(interval)
 
-    t1.start(5)
-    t2.start(20)
-    logging.debug('waiting before canceling %s', t2.getName())
-    time.sleep(2)
-    logging.debug('canceling %s', t2.getName())
-    print('before cancel t2.is_timing() = ', t2.is_timing())
-    t2.cancel()
-    time.sleep(2)
-    print('after cancel t2.is_timing() = ', t2.is_timing())
-    print('wait t1')
-    while t1.is_timing():
-        time.sleep(0.5)
+        def timer_wait(self, interval):
+            '''Wait an interval of time.
+            The time elapsed must match.
+            '''
+            logging.debug('waiting %s for %fs' %
+                                        (self.timer.getName(), interval))
+            self.start_timer(interval)
+            while self.timer.is_timing():
+                sleep(0.1)
+            now = time()
+            if now - self.start_time < interval:
+                logging.debug('%s FAIL' % self.timer.getName())
+                return 1
+            return 0
 
-    logging.debug('restarting timer1...')
-    t1.start(3)
-    print('wait t1')
-    while t1.is_timing():
-        time.sleep(0.5)
+        def timer_wait_after_restart(self, interval, interval_reloaded):
+            '''Start a timer interval and suddenly reload with new one
+            before the first expired.
+            The time elapsed must match.
+            '''
+            logging.debug('Reload %s with %fs after %fs' %
+                        (self.timer.getName(), interval_reloaded, interval))
+            self.start_timer(interval)
+            self.start_timer(interval_reloaded)
+            while self.timer.is_timing():
+                sleep(0.1)
+            now = time()
+            if now - self.start_time < interval_reloaded:
+                logging.debug('%s FAIL' % self.timer.getName())
+                return 1
+            return 0
 
-    logging.debug('restarting timer1 again...')
-    t1.start(4)
-    time.sleep(3)
-    t1.start(10)
-    print('wait t1')
-    while t1.is_timing():
-        time.sleep(0.5)
+        def timer_cancel(self, interval):
+            '''Start and subsequently cancel a timer.
+            Check is_timing method returning the timer status accordingly.
+            '''
+            logging.debug('Check %s running status' % self.timer.getName())
+            if self.timer.is_timing():
+                self.timer.cancel()
+            if self.timer.is_timing():
+                logging.debug('FAIL: cannot stop %s' % self.timer.getName())
+                return 1
+            logging.debug('Try to stop %s before %fs' %
+                                            (self.timer.getName(), interval))
+            self.start_timer(interval)
+            if self.timer.is_timing() is not True:
+                logging.debug('FAIL: cannot start %s' % self.timer.getName())
+                return 1
+            self.timer.cancel()
+            if self.timer.is_timing():
+                logging.debug('FAIL: cannot cancel %s' % self.timer.getName())
+                return 1
+            delta_time = time() - self.start_time
+            if delta_time > 0.5:
+                logging.debug('FAIL: %s delta time %fs' %
+                                            (self.timer.getName(), delta_time))
+                return 1
+            logging.debug('DONE: %s' % self.timer.getName())
+            return 0
 
-    logging.debug('terninating...')
-    t1.terminate(True)
-    t2.terminate(True)
-    logging.debug('done')
+        def finish(self):
+            '''Kill the timer thread.
+            '''
+            logging.debug('Terminating %s...' % self.timer.getName())
+            now = time()
+            self.timer.terminate(True)
+            delta = time() - now
+            logging.debug('%s delta = %fs' % (self.timer.getName(), delta))
+            if delta > 0.2:
+                '''The timer should not be running because of the testing flow.
+                Anyway accept a small delay in slow systems.
+                '''
+                logging.debug('FAIL: %s should not be pending' %
+                                                        self.timer.getName())
+                return 1
+            return 0
+
+    ''' TEST BENCH '''
+    logging.debug('--- TEST BENCH RUNNING ---')
+    tb_timer1 = UT_ThreadingTimers('Timer1')
+    tb_timer2 = UT_ThreadingTimers('Timer2')
+    error_cnt = 0
+    ut_cnt = 0
+    for cnr in range(2):
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait(3)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait(3)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait_after_restart(3, 5)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait_after_restart(3, 5)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_cancel(3)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_cancel(3)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait(2)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait(2)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_cancel(2)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_cancel(2)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait_after_restart(2, 4)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait_after_restart(2, 4)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait_after_restart(5, 2)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait(1)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait(1)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_cancel(1)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_cancel(4)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_cancel(4)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_cancel(1)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait_after_restart(1, 3)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait(4)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait(4)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer1.timer_wait_after_restart(1, 3)
+        ut_cnt = ut_cnt + 1
+        error_cnt = error_cnt + tb_timer2.timer_wait_after_restart(5, 2)
+
+    ut_cnt = ut_cnt + 1
+    error_cnt = error_cnt + tb_timer1.finish()
+    ut_cnt = ut_cnt + 1
+    error_cnt = error_cnt + tb_timer2.finish()
+    logging.debug('--- Finished with %d/%d errors ---' % (error_cnt, ut_cnt))
