@@ -100,7 +100,11 @@ class ThreadingTimers(Thread):
         if timeout is not True:
             self.cancel()
         self.run_evt.set()
-        self.join()
+        try:
+            self.join()
+        except RuntimeError:
+            '''Thread is not started yet'''
+            pass
 
 
 if __name__ == '__main__':
