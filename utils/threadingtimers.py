@@ -49,7 +49,7 @@ class ThreadingTimers(Thread):
     '''
     def __init__(self, on_timeout):
         '''Callback function will run after interval seconds have passed'''
-        super(ThreadingTimers, self).__init__()
+        super(ThreadingTimers, self).__init__(target=self.timer_run)
         self.interval = 0
         self.cbk_ontimeout = on_timeout
         self.run_evt = Event()
@@ -71,7 +71,7 @@ class ThreadingTimers(Thread):
         self._f_timing = True
         self.run_evt.set()
 
-    def run(self):
+    def timer_run(self):
         while self._f_running is True:
             self.run_evt.wait()
             if self._f_running is not True:
@@ -90,6 +90,7 @@ class ThreadingTimers(Thread):
     def cancel(self):
         '''Stop the timer, cancel the execution of the timer's action.'''
         self.stop_evt.set()
+        sleep(0.1)  # wait a timer_run cycle to reset _f_timing
 
     def terminate(self, timeout=False):
         '''Kill and wait until the thread terminates.
