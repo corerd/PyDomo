@@ -29,20 +29,21 @@ Follow the guidelines in http://stackoverflow.com/a/477578
 
 from __future__ import print_function
 from time import time
-from utils.threadingtimers import ThreadingTimers
 
 
 class Client(object):
     def __init__(self, ip):
-        self.attempts = 0
+        self.ip = ip
+        self.attempt_cnt = 0
         self.last_attempt_timestamp = 0
-        self.delay_expired_timestamp = 0
-        self.delay = ThreadingTimers(self.on_timeout)
-        self.delay.setName(ip)
+        self.end_of_timedelay = 0
 
-    def on_timeout(self):
-        '''Record the time when the time delay expires'''
-        self.delay_expired_timestamp = time()
+    def is_waiting(self):
+        '''Returns the delay status'''
+        if self.end_of_timedelay > time():
+            # client is still waiting
+            return True
+        return False
 
 
 class BruteForceAttackers(object):
@@ -66,11 +67,10 @@ class BruteForceAttackers(object):
 
     def remove(self, client_ip):
         try:
-            self.clnt_blacklist[client_ip].delay.terminate()
+            del self.clnt_blacklist[client_ip]
         except KeyError:
-            # not found
+            # client not found
             return
-        del self.clnt_blacklist[client_ip]
 
     def append(self, client_ip, time_delay=TIME_DELAY):
         '''If not found then create an instance of the client identified by IP
@@ -82,28 +82,16 @@ class BruteForceAttackers(object):
         client = None
         try:
             client = self.clnt_blacklist[client_ip]
-            if client.delay.is_timing():
-                client.delay.cancel()
         except KeyError:
             # client not found
             client = Client(client_ip)
             self.clnt_blacklist[client_ip] = client
-        client.attempts = client.attempts + 1
+        client.attempt_cnt = client.attempt_cnt + 1
         client.last_attempt_timestamp = time()
-        client.delay_expired_timestamp = client.last_attempt_timestamp
-        if client.attempts > self.MAX_FAILED_ATTEMPTS:
-            client.delay.start(time_delay)
+        client.end_of_timedelay = client.last_attempt_timestamp
+        if client.attempt_cnt > self.MAX_FAILED_ATTEMPTS:
+            client.end_of_timedelay = client.end_of_timedelay + time_delay
         return client
-
-    def is_waiting(self, client_ip):
-        '''Returns the delay status'''
-        client = None
-        try:
-            client = self.clnt_blacklist[client_ip]
-        except KeyError:
-            # if a client is not in black list then it is not waiting
-            return False
-        return client.delay.is_timing()
 
 
 def test_bench():
@@ -117,10 +105,9 @@ def test_bench():
         print('Add client IP %s in black list (%d attempts)' %
                                         (ip, attacker.MAX_FAILED_ATTEMPTS + 1))
         for attempt in range(attacker.MAX_FAILED_ATTEMPTS):
-            if attacker.append(ip, TB_TIME_DELAY).delay.is_timing() \
-                                                                is not False:
-                print('FAIL: time delay goes on at %d attempt' % attempt + 1)
-        if attacker.append(ip, TB_TIME_DELAY).delay.is_timing() is not True:
+            if attacker.append(ip, TB_TIME_DELAY).is_waiting() is True:
+                print('FAIL: time delay goes on at %d attempt' % (attempt + 1))
+        if attacker.append(ip, TB_TIME_DELAY).is_waiting() is not True:
             print("FAIL: time delay doesn't go on after %d attempt" %
                                                 attacker.MAX_FAILED_ATTEMPTS)
         sleep(0.5)
@@ -136,22 +123,18 @@ def test_bench():
             break
         some_is_waiting = False
         for client in list(waiting_list.keys()):
-            waiting_list[client] = attacker.is_waiting(client)
+            try:
+                waiting_list[client] = \
+                                attacker.clnt_blacklist[client].is_waiting()
+            except KeyError:
+                # client not found
+                waiting_list[client] = False
             if waiting_list[client] is True:
                 some_is_waiting = True
         sleep(0.1)
 
-    print('Removing...')
-    for client_ip in list(attacker.clnt_blacklist.keys()):
-        client = attacker.clnt_blacklist[client_ip]
-        duration = client.delay_expired_timestamp - \
-                                            client.last_attempt_timestamp
-        print('Client %s duration: %fs' % (client_ip, duration))
-        if duration < TB_TIME_DELAY:
-            print('--- FAIL: below than expected %fs' % TB_TIME_DELAY)
-        attacker.remove(client_ip)
     print('Leave Test Bench')
 
 
 if __name__ == '__main__':
-    pass
+    test_bench()
