@@ -1,0 +1,22 @@
+# systemd .service file template for PyDomoSvr
+#
+# Update with the real:
+#   least privileged user name
+#   path to PyDomoSvrLaunch.py
+#   path to configuration json file
+
+[Unit]
+Description=PyDomoSvr daemon
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=least-privileged-user
+ExecStart=/path/to/PyDomoSvrLaunch.py -c /path/to/configuration/file.json
+ExecStop=/bin/kill -INT $MAINPID
+#KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+
