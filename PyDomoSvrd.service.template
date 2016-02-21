@@ -1,7 +1,11 @@
 # systemd .service file template for PyDomoSvr
 #
+# Running as root
+#
+# Destination file:
+# /etc/systemd/system/PyDomoSvrd.service
+#
 # Update with the real:
-#   least privileged user name
 #   path to PyDomoSvrLaunch.py
 #   path to configuration json file
 
@@ -12,10 +16,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=least-privileged-user
+User=root
 ExecStart=/path/to/PyDomoSvrLaunch.py -c /path/to/configuration/file.json
 ExecStop=/bin/kill -INT $MAINPID
-#KillMode=process
 
 [Install]
 WantedBy=multi-user.target
