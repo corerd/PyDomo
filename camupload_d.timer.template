@@ -1,0 +1,34 @@
+# systemd .timer file template for camupload_d
+#
+# Destination file:
+# /etc/systemd/system/camupload_d.timer
+#
+# A matching .service file must exist:
+# /etc/systemd/system/camupload_d.service
+#
+# Do not enable the above service file; thise timer file will do that
+# once the indicated time has been reached.
+#
+# Replace:
+#   time-schedule with the specific calendar events
+#
+# Start timer:
+# systemctl start camupload_d.timer
+#
+# Enable timer to start at boot:
+# systemctl enable camupload_d.timer
+
+[Unit]
+Description=Scheduling of camupload_d service 
+
+[Timer]
+OnCalendar=Mon-Fri *-*-* 9,10,11,12,13,14,15,16,17:0/20
+# time-schedule example:
+#   every year (first asterisk),
+#   every month (second asterisk),
+#   every day (third asterisk), but only between Monday and Friday
+#   between 9 and 17:40 hour, repeating every 20 minutes
+
+[Install]
+WantedBy=timers.target
+

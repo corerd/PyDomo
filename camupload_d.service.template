@@ -1,0 +1,25 @@
+# systemd .service file template for camupload_d
+#
+# Destination file:
+# /etc/systemd/system/camupload_d.service
+#
+# A matching .timer file must exist:
+# /etc/systemd/system/camupload_d.timer
+#
+# Replace:
+#   user-name
+#   path to camupload.py
+#
+# NOTE:
+#  Do not enable this service file; the matching timer file will do that
+#  once the indicated time has been reached.
+#  For the same reason, [Install] section is not required.
+
+[Unit]
+Description=Take camera snapshots and upload them to the cloud
+
+[Service]
+Type=simple
+User=user-name
+ExecStart=/path/to/camupload.py
+
