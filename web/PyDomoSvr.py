@@ -29,6 +29,8 @@ Jinja2 engine to render Bootstrap templates
 
 from __future__ import print_function
 
+from pwd import getpwnam
+from os import getuid, setuid
 from os.path import dirname, join, realpath
 from utils.cli import cfg_file_arg
 from PyDomoApp import PyDomoApp
@@ -61,6 +63,14 @@ def main():
 
     if options.debug is True:
         print('Debug support is enabled')
+
+    if getuid() == 0:
+        '''If root, drop privileges'''
+        least_privileged_user = conf.data['site']['run-user']
+        print("Drop to %s user" % least_privileged_user)
+        least_privileged_user_id = getpwnam(least_privileged_user).pw_uid
+        setuid(least_privileged_user_id)
+
     app.run()
 
 

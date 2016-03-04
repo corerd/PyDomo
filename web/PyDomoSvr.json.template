@@ -24,7 +24,8 @@
         "ssl": {
             "certfile" : "<ssl certificate>",
             "keyfile" : "<ssl private key>"
-        }
+        },
+        "run-user" : "<least privileged user running the server process>"
     },
 
     "_rem-camera-list": "List of supported cameras",
