@@ -47,7 +47,7 @@ def mkdir(dir_name, verbose=False):
 
     Returns bool
     """
-    from os import makedirs, path
+    from os import mkdir, path
 
     exists = True
     if not path.isdir(dir_name):
@@ -57,7 +57,8 @@ def mkdir(dir_name, verbose=False):
                 print info_message
             else:
                 logging.info(info_message)
-            makedirs(dir_name)
+            # Creates the directory in a secure manner
+            mkdir(dir_name, 0700)
         except OSError:
             if not path.isdir(dir_name):
                 # If the directory doesn't exist,
