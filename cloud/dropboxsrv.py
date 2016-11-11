@@ -25,8 +25,12 @@
 
 '''This module wraps the Dropbox Uploader BASH script.
 
-It needs Dropbox Uploader.
+It is required Dropbox-Uploader.
 Ref: https://github.com/andreafabrizi/Dropbox-Uploader
+
+It is mandatory to run Dropbox-Uploader-Install.sh
+before call this module the first time.
+
 '''
 
 
