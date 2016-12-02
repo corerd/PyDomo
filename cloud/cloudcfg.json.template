@@ -8,6 +8,11 @@
     "_rem-todo-first": "Copy this file in cloudcfg.json",
     "_rem-todo-after": "Customize the metadata",
 
-    "datastore": "<path-to-recorded-data>"
+    "datastore": "<path-to-recorded-data>",
 
+    "_rem-weather-underground-api": "Weather api designed for developers",
+    "wu-home": "https://www.wunderground.com/weather/api",
+    "wu-api-key": "replace-with-your-key",
+    "wu-search-country": "replace-with-your-country",
+    "wu-search-city": "replace-with-your-city"
 }
