@@ -27,7 +27,7 @@
 '''
 
 
-def cfg_file_arg(prog_version, prog_usage, default_cfg_file):
+def cfg_file_arg(prog_version, prog_usage, default_cfg_file, prog_date='2015'):
     '''Parse cli arguments matching the following options:
          -h or --help
          -c or --cfg
@@ -40,7 +40,7 @@ def cfg_file_arg(prog_version, prog_usage, default_cfg_file):
 
     parser = ArgumentParser(description=prog_usage,
                              formatter_class=RawTextHelpFormatter)
-    print '%s v%s (C) 2015' % (parser.prog, prog_version)
+    print '%s v%s (C) %s' % (parser.prog, prog_version, prog_date)
 
     desc = "read the configuration from the CFG JSON file"
     parser.add_argument('-c', '--cfg', dest='cfg_file',
