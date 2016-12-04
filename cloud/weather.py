@@ -142,11 +142,11 @@ def main():
     try:
         cfg = ConfigDataLoad(options.cfg_file)
     except:
-        print('Unable to load config', file=sys.stderr)
+        print_error('Unable to load config', file=sys.stderr)
         return -1
 
     if check_directory(cfg.data['datastore']) is not True:
-        print("Cannot access %s directory" % cfg.data['datastore'], file=sys.stderr)
+        print_error("Cannot access %s directory" % cfg.data['datastore'], file=sys.stderr)
         return -1
 
     log_file = join(cfg.data['datastore'], "temperature.txt")
@@ -160,7 +160,7 @@ def main():
     if status == 0:
         print('Temperature log in file: %s' % log_file)
     else:
-        print('FAIL!')
+        print_error('FAIL!')
     return status
 
 
