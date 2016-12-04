@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-
+#
 # The MIT License (MIT)
 #
-# Copyright (c) 2015 Corrado Ubezio
+# Copyright (c) 2016 Corrado Ubezio
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +22,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Get configuration parameters
-"""
+'''Append to PYTHONPATH the path of the script from which it runs.
+Ref. http://stackoverflow.com/a/7886092
+'''
 
-import json
-
-
-class ConfigDataLoad:
-    def __init__(self, loadFile):
-        json_data = open(loadFile)
-        self.data = json.load(json_data)
-        json_data.close()
+from cloud.cloudcfg import getDatastorePath
 
 
-def getDatastorePath(json_file):
-    datastorePath = ''
-    try:
-        cfg = ConfigDataLoad(json_file)
-        datastorePath = cfg.data['datastore']
-    except:
-        pass
-    return datastorePath
+def run():
+    '''Returns status code
+    '''
+    print getDatastorePath('cloud/cloudcfg.json')
+    return 0
 
 
 if __name__ == "__main__":
-    datastorePath = getDatastorePath('cloudcfg.json.template')
-    if len(datastorePath) <= 0:
-        print 'ERROR: datastore path not found'
-    else:
-        print datastorePath
+    exit(run())
