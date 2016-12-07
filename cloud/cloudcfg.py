@@ -26,13 +26,40 @@
 """
 
 import json
+from os import makedirs
+from os.path import dirname, exists, join
 
 
 class ConfigDataLoad:
-    def __init__(self, loadFile):
-        json_data = open(loadFile)
-        self.data = json.load(json_data)
-        json_data.close()
+    def __init__(self, loadFile, defaultData=''):
+        self.jsonFile = loadFile
+        self.data = ''
+        try:
+            json_data = open(self.jsonFile)
+            self.data = json.load(json_data)
+            json_data.close()
+        except:
+            # loadFile doesn't exist,
+            # use defaultData if provided
+            # otherwise raise the exception
+            if len(defaultData) > 0:
+                self.data = json.loads(json.dumps(defaultData))
+            else:
+                raise
+
+    def update(self):
+        if len(self.data) <= 0:
+            return
+        if not exists(dirname(self.jsonFile)):
+            try:
+                makedirs(dirname(self.jsonFile))
+            except OSError as exc:
+                # Guard against race condition
+                # See: http://stackoverflow.com/a/12517490
+                if exc.errno != errno.EEXIST:
+                    raise
+        with open(self.jsonFile, "w") as f:
+            f.write(json.dumps(self.data))
 
 
 def getDatastorePath(json_file):
