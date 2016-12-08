@@ -101,7 +101,7 @@ def snap_shot(cfg):
                                         datetime.now(),
                                          cameraIndex)
         if imageCapture(camera, pictureFileFullName) is False:
-            logging.warning('Fail get image from camera %s' % camera['source'])
+            logging.error('get image from camera %s' % camera['source'])
         else:
             nsnaps = nsnaps + 1
             logging.info('Save image %s' % pictureFileFullName)
