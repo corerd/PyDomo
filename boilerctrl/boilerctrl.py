@@ -166,8 +166,10 @@ def main():
 
     try:
         cloud_cfg = ConfigDataLoad(CLOUD_DEFUALT_PATH)
-    except:
+    except Exception as e:
         print_error('cloud configuration: unable to load %s' % CLOUD_DEFUALT_PATH)
+        print(type(e).__name__)
+        print(str(e))
         return -1
 
     try:
