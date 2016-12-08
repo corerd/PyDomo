@@ -64,24 +64,45 @@ def isTimeToPowerOn(weatherSrvCfg):
     return True
 
 
+def boilerPowerOn():
+    pass
+
+
+def boilerPowerOff():
+    pass
+
+
 def crank(cfg):
     boilerstatus_file = join(cfg.data['datastore'], BOILERSTATUS_FILE)
     boilerstatus = ConfigDataLoad(boilerstatus_file, DEFAULT_BOILERSTATUS)
+    boilerstatusChanged = False
+
     current_time = int(time())
+    try:
+        power_on_time = int(boilerstatus.data['power-on-time'])
+    except:
+        print('boiler status format')
+        return
 
     if boilerstatus.data['power'] == 'ON':
-        if current_time - boilerstatus.data['power-on-time'] >= POWER_ON_DURATION:
+        if current_time - power_on_time >= POWER_ON_DURATION:
             boilerPowerOff()
             boilerstatus.data['power'] = 'OFF'
-            boilerstatus.update()
+            boilerstatusChanged = True
     else:
         # boiler power is OFF
-        if current_time - boilerstatus.data['power-on-time'] >= POWER_ON_INTERVAL:
+        if current_time - power_on_time >= POWER_ON_INTERVAL:
             if isTimeToPowerOn(cfg.data):
                 boilerPowerOn()
                 boilerstatus.data['power'] = 'ON'
-                boilerstatus.data['power-on-time'] = current_time
-                boilerstatus.update()
+                boilerstatus.data['power-on-time'] = str(current_time)
+                boilerstatusChanged = True
+
+    if boilerstatusChanged is True:
+        try:
+            boilerstatus.update()
+        except Exception as e:
+            print( '%s: %s' % (type(e).__name__, str(e)) )
 
 
 def main():
