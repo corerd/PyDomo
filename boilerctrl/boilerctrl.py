@@ -22,16 +22,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""Use cloud and camrecorder modules.
+datastore path must be the same.
+"""
+
 from __future__ import print_function
 
 import json
 import logging
 from sys import stderr
 from os.path import join
-from time import time, localtime, strftime
+from time import time, localtime, sleep, strftime
 
-from cloud.weather import DEFAULT_CFG_FILE_PATH, getLocationTemp
+from cloud.upload import upload_datastore
 from cloud.cloudcfg import ConfigDataLoad, checkDatastore
+from cloud.weather import DEFAULT_CFG_FILE_PATH as CLOUD_DEFUALT_PATH, getLocationTemp
+from camrecorder.camsnapshot import DEFAULT_CFG_FILE_PATH as CAMRECORDER_DEFUALT_PATH, snap_shot
 
 
 DEFAULT_BOILERSTATUS = \
@@ -42,7 +48,7 @@ DEFAULT_BOILERSTATUS = \
 BOILERSTATUS_FILE = 'boilerstatus.json'
 LOG_FILE = 'boilerctrl-log.txt'
 POWER_ON_DURATION = 1*60*60  # 1 hour as seconds keeping power ON
-POWER_ON_INTERVAL = 8*60*60  # 8 hours as seconds between two successive starts
+POWER_OFF_INTERVAL = 8*60*60  # 8 hours as seconds between two successive starts
 EARLY_MORNING_HOURS = range(5, 8)  # that is 5, 6, 7
 ICE_ALERT_THRESHOLD = 4.0  # Celsius degrees
 
@@ -85,28 +91,37 @@ def isTimeToPowerOn(externalTemp):
     return True
 
 
-def boilerPowerOn():
+def boilerPowerOn(camrecorder_cfg):
     logging.info('boiler goes ON')
+    snap_shot(camrecorder_cfg)  # take a snapshot before switching on
+    # switch_on
+    sleep(5)
+    snap_shot(camrecorder_cfg)  # take a snapshot after switching on
 
 
-def boilerPowerOff():
+
+def boilerPowerOff(camrecorder_cfg):
     logging.info('boiler goes OFF')
+    snap_shot(camrecorder_cfg)  # take a snapshot before switching off
+    # switch_off
+    sleep(5)
+    snap_shot(camrecorder_cfg)  # take a snapshot after switching off
 
 
-def crank(cfg):
-    log_file = join(cfg.data['datastore'], LOG_FILE)
+def crank(cloud_cfg, camrecorder_cfg):
+    log_file = join(cloud_cfg.data['datastore'], LOG_FILE)
     if checkDatastore(log_file) is not True:
-        print_error("Cannot access %s directory" % cfg.data['datastore'])
+        print_error("Cannot access %s directory" % cloud_cfg.data['datastore'])
         return -1
     logging.basicConfig(filename=log_file,
                         format='%(asctime)s;%(levelname)s;%(message)s',
                         level=logging.DEBUG)
 
-    boilerstatus_file = join(cfg.data['datastore'], BOILERSTATUS_FILE)
+    boilerstatus_file = join(cloud_cfg.data['datastore'], BOILERSTATUS_FILE)
     boilerstatus = ConfigDataLoad(boilerstatus_file, DEFAULT_BOILERSTATUS)
     boilerstatusChanged = False
 
-    externalTemp = getExternalTemp(cfg.data)
+    externalTemp = getExternalTemp(cloud_cfg.data)
 
     current_time = int(time())
     try:
@@ -117,14 +132,16 @@ def crank(cfg):
 
     if boilerstatus.data['power'] == 'ON':
         if current_time - power_on_time >= POWER_ON_DURATION:
-            boilerPowerOff()
+            logging.debug('switch ON duration expired')
+            boilerPowerOff(camrecorder_cfg)
             boilerstatus.data['power'] = 'OFF'
             boilerstatusChanged = True
     else:
         # boiler power is OFF
-        if current_time - power_on_time >= POWER_ON_INTERVAL:
+        if current_time - power_on_time >= POWER_OFF_INTERVAL:
+            logging.debug('switch OFF duration expired')
             if isTimeToPowerOn(externalTemp):
-                boilerPowerOn()
+                boilerPowerOn(camrecorder_cfg)
                 boilerstatus.data['power'] = 'ON'
                 boilerstatus.data['power-on-time'] = str(current_time)
                 boilerstatusChanged = True
@@ -134,15 +151,26 @@ def crank(cfg):
             boilerstatus.update()
         except Exception as e:
             logging.error( '%s: %s' % (type(e).__name__, str(e)) )
+        upload_datastore(cloud_cfg.data['datastore'])
 
 
 def main():
+    """Use cloud and camrecorder modules configuration files.
+    datastore path must be the same.
+    """
     try:
-        cfg = ConfigDataLoad(DEFAULT_CFG_FILE_PATH)
+        cloud_cfg = ConfigDataLoad(CLOUD_DEFUALT_PATH)
     except:
-        print_error('Unable to load config')
+        print_error('cloud configuration: unable to load %s' % CLOUD_DEFUALT_PATH)
         return -1
-    crank(cfg)
+
+    try:
+        camrecorder_cfg = ConfigDataLoad(CAMRECORDER_DEFUALT_PATH)
+    except:
+        print_error('camrecorder configuration: unable to load %s' % CAMRECORDER_DEFUALT_PATH)
+        return -1
+
+    crank(cloud_cfg, camrecorder_cfg)
     return 0
 
 
