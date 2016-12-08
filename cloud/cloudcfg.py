@@ -26,8 +26,9 @@
 """
 
 import json
-from os import makedirs
-from os.path import dirname, exists, join
+import errno
+from os import makedirs, strerror
+from os.path import dirname, exists
 
 
 class ConfigDataLoad:
@@ -50,16 +51,27 @@ class ConfigDataLoad:
     def update(self):
         if len(self.data) <= 0:
             return
-        if not exists(dirname(self.jsonFile)):
-            try:
-                makedirs(dirname(self.jsonFile))
-            except OSError as exc:
-                # Guard against race condition
-                # See: http://stackoverflow.com/a/12517490
-                if exc.errno != errno.EEXIST:
-                    raise
+        if checkDatastore(self.jsonFile) is not True:
+            # No such file or directory
+            raise OSError(errno.ENOENT, strerror(errno.ENOENT))
         with open(self.jsonFile, "w") as f:
             f.write(json.dumps(self.data))
+
+
+def checkDatastore(dir_name):
+    """If the directory dir_name doesn't exist, create it.
+    Returns True for SUCCESS, False otherwise
+    """
+    success = True
+    if not exists(dirname(dir_name)):
+        try:
+            makedirs(dirname(dir_name))
+        except OSError as exc:
+            # Guard against race condition
+            # See: http://stackoverflow.com/a/12517490
+            if exc.errno != errno.EEXIST:
+                success = False
+    return success
 
 
 def getDatastorePath(json_file):

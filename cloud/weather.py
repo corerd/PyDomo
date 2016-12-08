@@ -54,24 +54,6 @@ def print_error(msg):
     print('%s;%s' % (time.strftime("%Y-%m-%d %H:%M:%S"), msg), file=sys.stderr)
 
 
-def check_directory(dir_name):
-    """If the directory dir_name doesn't exist,
-    then create it.
-    Returns True for SUCCESS, False otherwise
-    """
-    exists = True
-    if not isdir(dir_name):
-        try:
-            # Creates the directory in a secure manner
-            mkdir(dir_name, 0700)
-        except OSError:
-            if not isdir(dir_name):
-                # If the directory doesn't exist,
-                # there was an error on creation
-                exists = False
-    return exists
-
-
 def wu_getConditions(user_api_key, country, city):
     """Get the current temperature in Celsius degrees using Weather Underground API.
     Weather Underground home: "https://www.wunderground.com/weather/api
@@ -134,7 +116,7 @@ def updateLog(user_api_key, country, city):
 
 def main():
     from utils.cli import cfg_file_arg
-    from cloudcfg import ConfigDataLoad
+    from cloudcfg import ConfigDataLoad, checkDatastore
 
     options = cfg_file_arg(VERSION, USAGE, DEFAULT_CFG_FILE_PATH, VERSION_DATE)
     print('Read configuration from file: %s' % options.cfg_file)
@@ -145,11 +127,11 @@ def main():
         print_error('Unable to load config', file=sys.stderr)
         return -1
 
-    if check_directory(cfg.data['datastore']) is not True:
+    log_file = join(cfg.data['datastore'], "temperature.txt")
+    if checkDatastore(log_file) is not True:
         print_error("Cannot access %s directory" % cfg.data['datastore'], file=sys.stderr)
         return -1
 
-    log_file = join(cfg.data['datastore'], "temperature.txt")
     logging.basicConfig(filename=log_file,
                         format='%(asctime)s;%(levelname)s;%(message)s',
                         level=logging.DEBUG)
