@@ -25,11 +25,13 @@
 from __future__ import print_function
 
 import json
-from time import time, localtime
+import logging
+from sys import stderr
 from os.path import join
+from time import time, localtime, strftime
 
 from cloud.weather import DEFAULT_CFG_FILE_PATH, getLocationTemp
-from cloud.cloudcfg import ConfigDataLoad
+from cloud.cloudcfg import ConfigDataLoad, checkDatastore
 
 
 DEFAULT_BOILERSTATUS = \
@@ -38,50 +40,79 @@ DEFAULT_BOILERSTATUS = \
     'power-on-time': '0'
 }
 BOILERSTATUS_FILE = 'boilerstatus.json'
+LOG_FILE = 'boilerctrl-log.txt'
 POWER_ON_DURATION = 1*60*60  # 1 hour as seconds keeping power ON
-POWER_ON_INTERVAL = 6*60*60  # 6 hours as seconds between two successive starts
+POWER_ON_INTERVAL = 8*60*60  # 8 hours as seconds between two successive starts
 EARLY_MORNING_HOURS = range(5, 8)  # that is 5, 6, 7
 ICE_ALERT_THRESHOLD = 4.0  # Celsius degrees
 
 
-def isTimeToPowerOn(weatherSrvCfg):
-    """ Check the external temperature against an ice alert threshold.
-    The temperature is get from a cloud service.
-    If the cloud service is not available,
-    then power on at least once a day.
+def print_error(msg):
+    print('%s;%s' % (strftime("%Y-%m-%d %H:%M:%S"), msg), file=stderr)
+
+
+def getExternalTemp(weatherSrvCfg):
+    """ Get the external temperature from a web service.
+    If the web service is not available, then returns None.
     """
     locationTemp = getLocationTemp( weatherSrvCfg['wu-api-key'],
                                     weatherSrvCfg['wu-search-country'],
                                     weatherSrvCfg['wu-search-city'] )
     if len(locationTemp) <= 0:
-        # cloud service is not available,
+        logging.error('weather service is not available')
+        return None
+    c_temp = locationTemp[1]
+    logging.info("ext temp;%0.1f" % c_temp)
+    return c_temp
+
+
+def isTimeToPowerOn(externalTemp):
+    """ Check the external temperature against an ice alert threshold.
+    If the external temperature is not available,
+    check if currrent time is in early morning range
+    so that the power is switched on at least once a day.
+    """
+    if externalTemp is None:
+        # external temperature is not available,
         # check early morning time.
         current_hour = localtime()[3]
-        return current_hour in EARLY_MORNING_HOURS
-    c_temp = locationTemp[1]
-    if c_temp > ICE_ALERT_THRESHOLD:
+        isEarlyMorning = current_hour in EARLY_MORNING_HOURS
+        if isEarlyMorning is True:
+            logging.error('force switch ON at early morning')
+        return isEarlyMorning
+    if externalTemp > ICE_ALERT_THRESHOLD:
         return False
     return True
 
 
 def boilerPowerOn():
-    pass
+    logging.info('boiler goes ON')
 
 
 def boilerPowerOff():
-    pass
+    logging.info('boiler goes OFF')
 
 
 def crank(cfg):
+    log_file = join(cfg.data['datastore'], LOG_FILE)
+    if checkDatastore(log_file) is not True:
+        print_error("Cannot access %s directory" % cfg.data['datastore'])
+        return -1
+    logging.basicConfig(filename=log_file,
+                        format='%(asctime)s;%(levelname)s;%(message)s',
+                        level=logging.DEBUG)
+
     boilerstatus_file = join(cfg.data['datastore'], BOILERSTATUS_FILE)
     boilerstatus = ConfigDataLoad(boilerstatus_file, DEFAULT_BOILERSTATUS)
     boilerstatusChanged = False
+
+    externalTemp = getExternalTemp(cfg.data)
 
     current_time = int(time())
     try:
         power_on_time = int(boilerstatus.data['power-on-time'])
     except:
-        print('boiler status format')
+        logging.error('boiler status format')
         return
 
     if boilerstatus.data['power'] == 'ON':
@@ -92,7 +123,7 @@ def crank(cfg):
     else:
         # boiler power is OFF
         if current_time - power_on_time >= POWER_ON_INTERVAL:
-            if isTimeToPowerOn(cfg.data):
+            if isTimeToPowerOn(externalTemp):
                 boilerPowerOn()
                 boilerstatus.data['power'] = 'ON'
                 boilerstatus.data['power-on-time'] = str(current_time)
@@ -102,14 +133,14 @@ def crank(cfg):
         try:
             boilerstatus.update()
         except Exception as e:
-            print( '%s: %s' % (type(e).__name__, str(e)) )
+            logging.error( '%s: %s' % (type(e).__name__, str(e)) )
 
 
 def main():
     try:
         cfg = ConfigDataLoad(DEFAULT_CFG_FILE_PATH)
     except:
-        print('Unable to load config', file=sys.stderr)
+        print_error('Unable to load config')
         return -1
     crank(cfg)
     return 0
