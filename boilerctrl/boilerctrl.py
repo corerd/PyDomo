@@ -40,6 +40,10 @@ from cloud.weather import DEFAULT_CFG_FILE_PATH as CLOUD_DEFUALT_PATH, getLocati
 from camrecorder.camsnapshot import DEFAULT_CFG_FILE_PATH as CAMRECORDER_DEFUALT_PATH, snap_shot
 
 
+# Globals
+VERSION = '1.0'
+VERSION_DATE = '2016'
+
 DEFAULT_BOILERSTATUS = \
 {
     'power': 'OFF',
@@ -158,6 +162,8 @@ def main():
     """Use cloud and camrecorder modules configuration files.
     datastore path must be the same.
     """
+    print('boilerctrl v%s - (C) %s' % (VERSION, VERSION_DATE))
+
     try:
         cloud_cfg = ConfigDataLoad(CLOUD_DEFUALT_PATH)
     except:
