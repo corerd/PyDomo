@@ -31,7 +31,9 @@ from __future__ import print_function
 import json
 import logging
 from sys import stderr
+from os import devnull
 from os.path import join
+from subprocess import STDOUT, call
 from time import time, localtime, sleep, strftime
 
 from cloud.upload import upload_datastore
@@ -95,10 +97,16 @@ def isTimeToPowerOn(externalTemp):
     return True
 
 
+def boilerPowerSwitch(onOff):
+    command = 'usbrelay UWMGH_1=%d' % onOff
+    with open(devnull, 'w') as FNULL:
+        call(command.split(), stdout=FNULL, stderr=STDOUT)
+
+
 def boilerPowerOn(camrecorder_cfg):
     logging.info('boiler goes ON')
     snap_shot(camrecorder_cfg)  # take a snapshot before switching on
-    # switch_on
+    boilerPowerSwitch(1)  # switch_on
     sleep(5)
     snap_shot(camrecorder_cfg)  # take a snapshot after switching on
 
@@ -107,7 +115,7 @@ def boilerPowerOn(camrecorder_cfg):
 def boilerPowerOff(camrecorder_cfg):
     logging.info('boiler goes OFF')
     snap_shot(camrecorder_cfg)  # take a snapshot before switching off
-    # switch_off
+    boilerPowerSwitch(0)  # switch_off
     sleep(5)
     snap_shot(camrecorder_cfg)  # take a snapshot after switching off
 
