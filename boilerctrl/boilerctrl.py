@@ -168,14 +168,16 @@ def main():
         cloud_cfg = ConfigDataLoad(CLOUD_DEFUALT_PATH)
     except Exception as e:
         print_error('cloud configuration: unable to load %s' % CLOUD_DEFUALT_PATH)
-        print(type(e).__name__)
-        print(str(e))
+        print_error('cloud configuration exception: %s' % type(e).__name__)
+        print_error('cloud configuration: %s' % str(e))
         return -1
 
     try:
         camrecorder_cfg = ConfigDataLoad(CAMRECORDER_DEFUALT_PATH)
-    except:
+    except Exception as e:
         print_error('camrecorder configuration: unable to load %s' % CAMRECORDER_DEFUALT_PATH)
+        print_error('camrecorder configuration exception: %s' % type(e).__name__)
+        print_error('camrecorder configuration: %s' % str(e))
         return -1
 
     crank(cloud_cfg, camrecorder_cfg)
