@@ -97,7 +97,7 @@ def getLocationTemp(user_api_key, country, city):
         if retries >= 2:
             break
         retries = retries + 1
-        time.sleep(5)
+        time.sleep(10)
         locationTemp = wu_getConditions(user_api_key, country, city)
     return locationTemp
 
