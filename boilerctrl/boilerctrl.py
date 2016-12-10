@@ -143,7 +143,9 @@ def crank(cloud_cfg, camrecorder_cfg):
         return
 
     if boilerstatus.data['power'] == 'ON':
-        if current_time - power_on_time >= POWER_ON_DURATION:
+        # Offset the initialization delays
+        OFFSET_DELAY = 5*60  # 5 minutes as seconds
+        if (current_time+OFFSET_DELAY) - power_on_time >= POWER_ON_DURATION:
             logging.debug('switch ON duration expired')
             boilerPowerOff(camrecorder_cfg)
             boilerstatus.data['power'] = 'OFF'
