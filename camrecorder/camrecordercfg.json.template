@@ -13,21 +13,24 @@
     "_rem-camera-list": "List of supported cameras",
     "cameras-list": [
         {
-            "optional-auth": {
-                "user-name" : "<camera_0 user>",
-                "password": "<camera_0 password>"
-            },
-            "source": "<camera_0 protocol_and_address>"
-        },
-        {
-            "source": "<camera_1 protocol_and_address>"
+            "source":  "usb://<web_cam_id [0..n]>"
         },
         {
             "optional-auth": {
-                "user-name" : "<camera_2 user>",
-                "password": "<camera_2 password>"
+                "user-name" : "<ip_cam_0 user>",
+                "password": "<ip_cam_0 password>"
             },
-            "source": "<camera_2 protocol_and_address>"
+            "source": "<ip_cam_0 protocol_and_address>"
+        },
+        {
+            "source": "<ip_cam_1 protocol_and_address>"
+        },
+        {
+            "optional-auth": {
+                "user-name" : "<ip_cam_2 user>",
+                "password": "<ip_cam_2 password>"
+            },
+            "source": "<ip_cam_2 protocol_and_address>"
         }
     ]
 }
