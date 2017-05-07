@@ -29,4 +29,4 @@ ssl_gen_crt.sh server.key server.csr server.crt
 ```
 
 Step 5: Installing the Private Key and Certificate
-==================================================
+--------------------------------------------------
