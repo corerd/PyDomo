@@ -103,7 +103,7 @@ STATIC_ENDPOINT = THIS_MODULE_DIR + STATIC_FILES_DIR
 '''CONFIGURATION DATA'''
 HTTP_PORT = '80'
 HTTPS_PORT = '443'
-SSL_CFG_FILES_DIR = '/srv/BootstrapStarterSvr/ssl/'
+SSL_CFG_FILES_DIR = # insert the path to ssl cert files
 
 
 class WebPagesHandler(SimpleHTTPRequestHandler):
@@ -271,7 +271,7 @@ class BootstrapStarterApp:
 
 
 def main():
-    AUTH = False
+    AUTH = True
 
     if AUTH is True:
         host_cfg = {
@@ -284,8 +284,8 @@ def main():
                 'user-name': "pippo",
                 'password': "pluto"
             },
-            'certificate': SSL_CFG_FILES_DIR + 'certs/test.crt',
-            'keyfile': SSL_CFG_FILES_DIR + 'private/test.key',
+            'certificate': SSL_CFG_FILES_DIR + ,  # add cert file name
+            'keyfile': SSL_CFG_FILES_DIR + ,  # add privkey file name
         }
         app = BootstrapStarterApp(host_cfg, auth_data=auth_cfg)
     else:
