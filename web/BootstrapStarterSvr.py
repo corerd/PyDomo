@@ -101,9 +101,9 @@ STATIC_ENDPOINT = THIS_MODULE_DIR + STATIC_FILES_DIR
 
 
 '''CONFIGURATION DATA'''
-HTTP_PORT = '8080'
-HTTPS_PORT = '4443'
-SSL_CFG_FILES_DIR = '/etc/ssl/BootstrapStarterSvr/'
+HTTP_PORT = '80'
+HTTPS_PORT = '443'
+SSL_CFG_FILES_DIR = '/srv/BootstrapStarterSvr/ssl/'
 
 
 class WebPagesHandler(SimpleHTTPRequestHandler):
@@ -271,7 +271,7 @@ class BootstrapStarterApp:
 
 
 def main():
-    AUTH = True
+    AUTH = False
 
     if AUTH is True:
         host_cfg = {
@@ -284,8 +284,8 @@ def main():
                 'user-name': "pippo",
                 'password': "pluto"
             },
-            'certificate': SSL_CFG_FILES_DIR + 'server.crt',
-            'keyfile': SSL_CFG_FILES_DIR + 'server.key',
+            'certificate': SSL_CFG_FILES_DIR + 'certs/test.crt',
+            'keyfile': SSL_CFG_FILES_DIR + 'private/test.key',
         }
         app = BootstrapStarterApp(host_cfg, auth_data=auth_cfg)
     else:
