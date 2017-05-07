@@ -27,4 +27,5 @@ then
 fi
 
 echo "#### PEM pass phrase free Private Key file in $KEYFILE_PASSPHRASE_FREE"
-openssl rsa -in "$KEYFILE_PASSPHRASE_PROTECTED" -out "$KEYFILE_PASSPHRASE_FREE" -passin pass:$PASSPHRASE
+#openssl rsa -in "$KEYFILE_PASSPHRASE_PROTECTED" -out "$KEYFILE_PASSPHRASE_FREE" -passin pass:$PASSPHRASE
+openssl rsa -in "$KEYFILE_PASSPHRASE_PROTECTED" -out "$KEYFILE_PASSPHRASE_FREE"
