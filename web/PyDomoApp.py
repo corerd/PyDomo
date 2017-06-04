@@ -47,6 +47,8 @@ from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from SocketServer import ThreadingMixIn
 from jinja2 import Environment, PackageLoader, TemplateNotFound
+from datetime import datetime
+from sys import stderr
 from cameraman.camgrab import grabImage
 import ssl
 import urllib
@@ -226,12 +228,18 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         if sendReply is True:
             if is_jinja_template is True:
                 #Render the template file and send it
+                now = datetime.now()
+                datetime_stamp = now.strftime("%d/%b/%Y %H:%M:%S")
+                cyear = now.strftime("%y")
                 try:
                     template = JINJA_ENV.get_template(self.path)
                     self.do_mimetype_HEAD(mimetype)
                     self.wfile.write(template.render(
                         jpeg_base64_list=get_snapshots_list(camera_desc_list),
-                        proj_name=WebPagesHandler.get_site_title()))
+                        proj_name=WebPagesHandler.get_site_title(),
+                        datetime_stamp=datetime_stamp,
+                        cyear=cyear
+                        ))
                 except TemplateNotFound as e:
                         self.send_error(404, 'Template Not Found: %s' % e.name)
             else:
@@ -326,8 +334,6 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
     def server_log(self, client, message):
         '''Logs an arbitrary message to sys.stderr.'''
-        from datetime import datetime
-        from sys import stderr
         print("%s - - [%s] \"%s\"" %
              (client, datetime.now().strftime("%d/%b/%Y %H:%M:%S"), message),
                 file=stderr)
