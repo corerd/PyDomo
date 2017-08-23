@@ -34,9 +34,17 @@ To hush the browsers, the certificate must be provided by a Certificate Authorit
 The [Certbot](https://certbot.eff.org/#arch-other) ACME client automates
 *Let's Encrypt* certificates issuance and installation.
 
+To obtain a cert using a built-in `standalone` webserver
+(you may need to temporarily stop your existing webserver, if any):
+```
+$ sudo certbot certonly --standalone -d <your-domain>
+```
 All generated keys and issued certificates can be found
 in `/etc/letsencrypt/live/<your-domain>`.
-During the renewal, `/etc/letsencrypt/live` is updated with the latest necessary files.
+
+After a renewal, the latest necessary files are saved in
+`/etc/letsencrypt/live/<your-domain>-<XYWZ>`
+where `<XYWZ>` is a renewal counter.
 
 
 PyDomo SSL configuration
@@ -44,8 +52,8 @@ PyDomo SSL configuration
 Open `/srv/PyDomoSvr/PyDomoSvr.json` and set the following fields:
 ```
 "ssl": {
-    "certfile" : "/etc/letsencrypt/live/<your-domain>/cert.pem",
-    "keyfile" : "/etc/letsencrypt/live/<your-domain>/privkey.pem"
+    "certfile" : "/etc/letsencrypt/live/<your-domain>-<XYWZ>/cert.pem",
+    "keyfile" : "/etc/letsencrypt/live/<your-domain>-<XYWZ>/privkey.pem"
 },
 ```
 
