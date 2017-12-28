@@ -5,10 +5,15 @@
   <div class="starter-template">
     <h1>Camera Snapshots</h1>
     <h3>{{ datetime_stamp }}</h3>
-    {% for jpeg_base64 in jpeg_base64_list %}
+    {% for snapshot in snapshots %}
         <hr>
-        {% if jpeg_base64 %}
-            <img src="data:image/jpeg;base64,{{ jpeg_base64 }}" class="img-responsive" alt="Camera snap shot">
+        {% if snapshot %}
+            <img src="data:image/jpeg;base64,{{ snapshot.jpeg_base64 }}" class="img-responsive" alt="Camera snap shot">
+            {% if snapshot.nightViewEn %}
+                Placeholder for nightViewEn
+            {% else %}
+                Placeholder for NO nightViewEn
+            {% endif %}
         {% else %}
             <img src="img/camera_not_found.png" class="img-responsive" alt="Camera not found">
         {% endif %}

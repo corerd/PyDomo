@@ -45,6 +45,9 @@
                 "user-name" : "<camera_2 user>",
                 "password": "<camera_2 password>"
             },
+            "optional-irled": {
+                "url-ctrl" : "<camera_2 irled_ctrl_protocol_and_address>"
+            },
             "source": "<camera_2 protocol_and_address>"
         }
     ]

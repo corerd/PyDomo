@@ -114,6 +114,12 @@ STATIC_ENDPOINT = THIS_MODULE_DIR + STATIC_FILES_DIR
 '''Create an instance of camera_desc_list'''
 camera_desc_list = {}
 
+class CameraSnapshot( object ):
+    '''Subclass of object
+    See: https://stackoverflow.com/a/285086
+    '''
+    pass
+
 
 def binary2uri(binary_data):
     '''Convert a raw binary bytearray into a data URI
@@ -146,12 +152,19 @@ def get_snapshots_list(cameras_list):
             then they are encoded to base64 and interpolated
             and appended to the list.
             '''
-            snapshots_list.append(binary2uri(jpg_image))
+            snapshot = CameraSnapshot()
+            snapshot.jpeg_base64 = binary2uri(jpg_image)
+            snapshot.nightViewEn = False
+            try:
+                if len(camera_desc['optional-irled']['url-ctrl']) > 0:
+                    snapshot.nightViewEn = True
+            except KeyError:
+                pass
         else:
-            '''grabImage returns errors
-            return an empty string
+            '''grabImage returns errors.
             '''
-            snapshots_list.append(None)
+            snapshot = None
+        snapshots_list.append(snapshot)
     return snapshots_list
 
 
@@ -235,7 +248,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
                     template = JINJA_ENV.get_template(self.path)
                     self.do_mimetype_HEAD(mimetype)
                     self.wfile.write(template.render(
-                        jpeg_base64_list=get_snapshots_list(camera_desc_list),
+                        snapshots=get_snapshots_list(camera_desc_list),
                         proj_name=WebPagesHandler.get_site_title(),
                         datetime_stamp=datetime_stamp,
                         cyear=cyear
