@@ -39,6 +39,33 @@ See also: Link: http://stackoverflow.com/a/11094891
 """
 
 
+def lightsIP(cameraUrl, username, password, on):
+    '''Switch IR leds on/off
+    See night vision mode on/off for D-Link DCS-932L IP Camera
+    link: http://forums.ispyconnect.com/forum.aspx?g=posts&t=1151
+
+    Returns bool
+    '''
+    from requests import post
+
+    if on is True:
+        payload = {"IRLed":"1"}
+    else:
+        payload = {"IRLed":"0"}
+    try:
+        r = post(cameraUrl, auth=(username, password),  data=payload)
+    except Exception:
+        # TODO: better to handle exceptions as in:
+        # http://docs.python-requests.org/en/latest/user/quickstart/#errors-and-exceptions
+        return False
+    if r.status_code == 204:
+        '''The server has successfully fulfilled the request
+        and there is no additional content.
+        '''
+        return True
+    return False
+
+
 def grabImageFromIP(cameraUrl, username, password):
     '''Grabs a snapshot from the IP camera referenced by its URL.
 
