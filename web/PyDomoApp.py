@@ -142,6 +142,7 @@ def get_snapshots_list(cameras_list):
 
     Return an image list encoded to base64 and interpolated in data URIs.
     '''
+    snapshots_idx = 0
     snapshots_list = []
     for camera_desc in cameras_list:
         '''The properties (ip address, optional credentials) of each web camera
@@ -155,10 +156,10 @@ def get_snapshots_list(cameras_list):
             '''
             snapshot = CameraSnapshot()
             snapshot.jpeg_base64 = binary2uri(jpg_image)
-            snapshot.nightViewEn = False
+            snapshot.nightvwCamIdx = -1  # not present
             try:
                 if len(camera_desc['optional-irled']['url-ctrl']) > 0:
-                    snapshot.nightViewEn = True
+                    snapshot.nightvwCamIdx = snapshots_idx
             except KeyError:
                 pass
         else:
@@ -166,6 +167,7 @@ def get_snapshots_list(cameras_list):
             '''
             snapshot = None
         snapshots_list.append(snapshot)
+        snapshots_idx = snapshots_idx + 1
     return snapshots_list
 
 
@@ -223,7 +225,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
 
     def split_pathNparams(self, url):
         '''Parse GET request URL into path and query string components.
-        Return path and query string as a list of name, value pairs.
+        Return path and query string as a dictionary of name, value pairs.
 
         About accessing http request parameters.
         https://stackoverflow.com/q/2490162
@@ -232,12 +234,14 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         path = parsed_path.path
         if path == "/":
             path = "/PyDomoSvr-main.htm"
-        return path, parse_qsl(parsed_path.query)
+        # parse_qsl returns a list of name, value pairs
+        # to convert into a dictionary.
+        return path, dict(parse_qsl(parsed_path.query))
 
     def get_form_data(self):
         '''Retrieve the query string (name/value pairs) from the message body
         of a POST request.
-        Return the query string as a list of name, value pairs.
+        Return the query string as a dictionary of name, value pairs.
 
         See:
         https://pymotw.com/2/BaseHTTPServer/#http-post
@@ -245,7 +249,9 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         '''
         content_length = self.headers.getheaders('content-length')
         length = int(content_length[0]) if content_length else 0
-        return parse_qsl(self.rfile.read(length))
+        # parse_qsl returns a list of name, value pairs:
+        # convert into a dictionary and return.
+        return dict(parse_qsl(self.rfile.read(length)))
 
     def do_POST(self):
         '''Handler for data POSTed
@@ -257,16 +263,18 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         params = self.get_form_data()
 
         # Process the submitted data
-        for param in params:
-            print('%s : %s' % (param[0], param[1]))
+        # print the list of  name, value pairs.
+        for name in params.keys():
+            print('%s : %s' % (name, params[name]), file=stderr)
 
         self.write_template(self.path)
 
     def do_GET(self):
         '''Handler for the GET requests'''
         self.path, params = self.split_pathNparams(self.path)
-        #for param in params:
-        #    print('%s : %s' % (param[0], param[1]))
+        # print the list of  name, value pairs.
+        #for name in params.keys():
+        #    print('%s : %s' % (name, params[name]), file=stderr)
 
         #Check the file extension required and
         #set the right mime type
