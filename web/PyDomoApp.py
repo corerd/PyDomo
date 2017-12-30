@@ -46,6 +46,7 @@ from os import curdir, sep, path
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from SocketServer import ThreadingMixIn
+from urlparse import urlparse, parse_qsl
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from datetime import datetime
 from sys import stderr
@@ -129,7 +130,7 @@ def binary2uri(binary_data):
     An other approach can be found here:
     http://stackoverflow.com/a/12035037
 
-    Returns the base64 encoded and interpolated binary_data.
+    Return the base64 encoded and interpolated binary_data.
     '''
     base64_data = base64.b64encode(binary_data)
     return '{}'.format(urllib.quote(base64_data.rstrip('\n')))
@@ -139,7 +140,7 @@ def get_snapshots_list(cameras_list):
     '''Grab snapshots from a list of web cameras.
     The list of web cameras is read from the configuration file.
 
-    Returns an image list encoded to base64 and interpolated in data URIs.
+    Return an image list encoded to base64 and interpolated in data URIs.
     '''
     snapshots_list = []
     for camera_desc in cameras_list:
@@ -197,16 +198,75 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         self.request.settimeout(self.socket_timeout)
         SimpleHTTPRequestHandler.setup(self)
 
-    def do_mimetype_HEAD(self, mimetype):
+    def write_header(self, mimetype):
         '''send header according to mimetype'''
         self.send_response(200)
         self.send_header('Content-type', mimetype)
         self.end_headers()
 
+    def write_template(self, template_path):
+        '''Render and send the template file'''
+        now = datetime.now()
+        datetime_stamp = now.strftime("%d/%b/%Y %H:%M:%S")
+        cyear = now.strftime("%y")
+        try:
+            template = JINJA_ENV.get_template(template_path)
+            self.write_header('text/html')
+            self.wfile.write(template.render(
+                snapshots=get_snapshots_list(camera_desc_list),
+                proj_name=WebPagesHandler.get_site_title(),
+                datetime_stamp=datetime_stamp,
+                cyear=cyear
+                ))
+        except TemplateNotFound as e:
+                self.send_error(404, 'Template Not Found: %s' % e.name)
+
+    def split_pathNparams(self, url):
+        '''Parse GET request URL into path and query string components.
+        Return path and query string as a list of name, value pairs.
+
+        About accessing http request parameters.
+        https://stackoverflow.com/q/2490162
+        '''
+        parsed_path = urlparse(url)
+        path = parsed_path.path
+        if path == "/":
+            path = "/PyDomoSvr-main.htm"
+        return path, parse_qsl(parsed_path.query)
+
+    def get_form_data(self):
+        '''Retrieve the query string (name/value pairs) from the message body
+        of a POST request.
+        Return the query string as a list of name, value pairs.
+
+        See:
+        https://pymotw.com/2/BaseHTTPServer/#http-post
+        https://gist.github.com/huyng/814831
+        '''
+        content_length = self.headers.getheaders('content-length')
+        length = int(content_length[0]) if content_length else 0
+        return parse_qsl(self.rfile.read(length))
+
+    def do_POST(self):
+        '''Handler for data POSTed
+        assuming that the form data is sent to the templaate page
+        (i.e. self.path == "/PyDomoSvr-main.htm").
+        '''
+        # Replace URL parameters with form data
+        self.path, params = self.split_pathNparams(self.path)
+        params = self.get_form_data()
+
+        # Process the submitted data
+        for param in params:
+            print('%s : %s' % (param[0], param[1]))
+
+        self.write_template(self.path)
+
     def do_GET(self):
         '''Handler for the GET requests'''
-        if self.path == "/":
-            self.path = "/PyDomoSvr-main.htm"
+        self.path, params = self.split_pathNparams(self.path)
+        #for param in params:
+        #    print('%s : %s' % (param[0], param[1]))
 
         #Check the file extension required and
         #set the right mime type
@@ -240,27 +300,13 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
 
         if sendReply is True:
             if is_jinja_template is True:
-                #Render the template file and send it
-                now = datetime.now()
-                datetime_stamp = now.strftime("%d/%b/%Y %H:%M:%S")
-                cyear = now.strftime("%y")
-                try:
-                    template = JINJA_ENV.get_template(self.path)
-                    self.do_mimetype_HEAD(mimetype)
-                    self.wfile.write(template.render(
-                        snapshots=get_snapshots_list(camera_desc_list),
-                        proj_name=WebPagesHandler.get_site_title(),
-                        datetime_stamp=datetime_stamp,
-                        cyear=cyear
-                        ))
-                except TemplateNotFound as e:
-                        self.send_error(404, 'Template Not Found: %s' % e.name)
+                self.write_template(self.path)
             else:
                 #Open the static file requested and send it
                 static_file_path = STATIC_ENDPOINT + self.path
                 try:
                     static_file = open(static_file_path)
-                    self.do_mimetype_HEAD(mimetype)
+                    self.write_header(mimetype)
                     self.wfile.write(static_file.read())
                     static_file.close()
                 except IOError:
