@@ -113,7 +113,7 @@ STATIC_ENDPOINT = THIS_MODULE_DIR + STATIC_FILES_DIR
 
 # Globals
 '''Create an instance of camera_desc_list'''
-camera_desc_list = {}
+camera_desc_list = []
 
 class CameraSnapshot( object ):
     '''Subclass of object
@@ -436,7 +436,13 @@ class PyDomoApp:
         '''Define the handler of the incoming request.
         '''
         global camera_desc_list
-        camera_desc_list = app_cfg['cameras-list']
+        for camera_desc in app_cfg['cameras-list']:
+            # store only camera descriptor with a valid source key
+            try:
+                if len(camera_desc['source']) > 0:
+                    camera_desc_list.append(camera_desc)
+            except KeyError:
+                pass
         WebPagesHandler.set_site_title(app_cfg['site']['title'])
         self.host_name = app_cfg['site']['host']['name']
         self.host_port = int(app_cfg['site']['host']['port'])
