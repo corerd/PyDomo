@@ -50,7 +50,7 @@ from urlparse import urlparse, parse_qsl
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from datetime import datetime
 from sys import stderr
-from cameraman.camgrab import grabImage
+from cameraman.camgrab import grabImage, lightsIP
 import ssl
 import urllib
 import base64
@@ -156,7 +156,7 @@ def get_snapshots_list(cameras_list):
             '''
             snapshot = CameraSnapshot()
             snapshot.jpeg_base64 = binary2uri(jpg_image)
-            snapshot.nightvwCamIdx = -1  # not present
+            snapshot.nightvwCamIdx = -1  # capability not present
             try:
                 if len(camera_desc['optional-irled']['url-ctrl']) > 0:
                     snapshot.nightvwCamIdx = snapshots_idx
@@ -239,8 +239,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         return path, dict(parse_qsl(parsed_path.query))
 
     def get_form_data(self):
-        '''Retrieve the query string (name/value pairs) from the message body
-        of a POST request.
+        '''Retrieve the query string (name/value pairs) from POST message body.
         Return the query string as a dictionary of name, value pairs.
 
         See:
@@ -253,6 +252,33 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         # convert into a dictionary and return.
         return dict(parse_qsl(self.rfile.read(length)))
 
+    def process_POST_data(self, params):
+        try:
+            camIdx = int(params['camIdx'])
+            irLed_on = True if int(params['IRLed'])>0 else False
+        except:
+            print('POST data unknown', file=stderr)
+            return
+        try:
+            camera_desc = camera_desc_list[camIdx]
+        except IndexError:
+            print('IRLed camera index out of range', file=stderr)
+            return
+        try:
+             irLed_ctrl_url = camera_desc['optional-irled']['url-ctrl']
+        except KeyError:
+            print('IRLed control url not found', file=stderr)
+            return
+        try:
+            username = camera_desc['optional-auth']['user-name']
+            password = camera_desc['optional-auth']['password']
+        except KeyError:
+            username = ''
+            password = ''
+        if lightsIP(irLed_ctrl_url, username, password, irLed_on) is False:
+            print('Unable to connect <%s>:<%s>@%s' % (username, password, irLed_ctrl_url),
+                                                                    file=stderr)
+
     def do_POST(self):
         '''Handler for data POSTed
         assuming that the form data is sent to the templaate page
@@ -262,11 +288,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         self.path, params = self.split_pathNparams(self.path)
         params = self.get_form_data()
 
-        # Process the submitted data
-        # print the list of  name, value pairs.
-        for name in params.keys():
-            print('%s : %s' % (name, params[name]), file=stderr)
-
+        self.process_POST_data(params)
         self.write_template(self.path)
 
     def do_GET(self):
