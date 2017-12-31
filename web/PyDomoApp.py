@@ -51,6 +51,7 @@ from jinja2 import Environment, PackageLoader, TemplateNotFound
 from datetime import datetime
 from sys import stderr
 from cameraman.camgrab import grabImage, lightsIP
+from time import sleep
 import ssl
 import urllib
 import base64
@@ -278,6 +279,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         if lightsIP(irLed_ctrl_url, username, password, irLed_on) is False:
             print('Unable to connect <%s>:<%s>@%s' % (username, password, irLed_ctrl_url),
                                                                     file=stderr)
+        sleep(1)
 
     def do_POST(self):
         '''Handler for data POSTed
