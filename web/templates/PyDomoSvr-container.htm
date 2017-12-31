@@ -8,7 +8,7 @@
     {% for snapshot in snapshots %}
         <hr>
         {% if snapshot %}
-            <img src="data:image/jpeg;base64,{{ snapshot.jpeg_base64 }}" class="img-responsive" alt="Camera snap shot">
+            <img src="data:image/jpeg;base64,{{ snapshot.jpeg_base64 }}" class="img-responsive" style="margin:0 auto;" alt="Camera snap shot">
             {% if snapshot.nightvwCamIdx >= 0 %}
               <br>
               <div class="row">
