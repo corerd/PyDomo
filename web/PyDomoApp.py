@@ -57,6 +57,10 @@ import urllib
 import base64
 
 
+'''Define the name of the HOME page'''
+HOME_PAGE='PyDomoSvr-main.htm'
+
+
 '''Define the name of the directory for static files,
 that is CSS, JavaScript files and so on.
 '''
@@ -216,6 +220,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
             template = JINJA_ENV.get_template(template_path)
             self.write_header('text/html')
             self.wfile.write(template.render(
+                home_page=template_path,
                 snapshots=get_snapshots_list(camera_desc_list),
                 proj_name=WebPagesHandler.get_site_title(),
                 datetime_stamp=datetime_stamp,
@@ -234,7 +239,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         parsed_path = urlparse(url)
         path = parsed_path.path
         if path == "/":
-            path = "/PyDomoSvr-main.htm"
+            path = "/" + HOME_PAGE
         # parse_qsl returns a list of name, value pairs
         # to convert into a dictionary.
         return path, dict(parse_qsl(parsed_path.query))
@@ -284,7 +289,7 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         '''Handler for data POSTed
         assuming that the form data is sent to the templaate page
-        (i.e. self.path == "/PyDomoSvr-main.htm").
+        (i.e. self.path == "/"+HOME_PAGE).
         '''
         # Replace URL parameters with form data
         self.path, params = self.split_pathNparams(self.path)
