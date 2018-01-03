@@ -8,6 +8,9 @@
     {% for snapshot in snapshots %}
         <hr>
         {% if snapshot %}
+            {# Center the image in Bootstrap
+               See: https://stackoverflow.com/a/19230436
+            #}
             <img src="data:image/jpeg;base64,{{ snapshot.jpeg_base64 }}" class="img-responsive" style="margin:0 auto;" alt="Camera snap shot">
             {% if snapshot.nightvwCamIdx >= 0 %}
               <br>
@@ -16,14 +19,14 @@
                   <form method="post">
                     <input type="hidden" class="form-control" name="camIdx" value="{{ snapshot.nightvwCamIdx }}">
                     <input type="hidden" class="form-control" name="IRLed" value="1">
-                    <button type="submit" class="btn btn-success">Lights ON</button>
+                    <button type="submit" class="btn btn-success">IR ON</button>
                   </form>
                 </div>
                 <div class="col-xs-6">
                   <form method="post">
                     <input type="hidden" class="form-control" name="camIdx" value="{{ snapshot.nightvwCamIdx }}">
                     <input type="hidden" class="form-control" name="IRLed" value="0">
-                    <button type="submit" class="btn btn-danger">Lights OFF</button>
+                    <button type="submit" class="btn btn-danger">IR OFF</button>
                   </form>
                 </div>
               </div><!-- /.row -->
