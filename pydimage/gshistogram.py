@@ -37,17 +37,13 @@ import matplotlib.pyplot as plt
 from pilib import ExtendedImage
 
 
-def gshistogram(src_image_file):
+def gshistogram(src_image_file, interactive=False):
     '''Convert image to greyscale and save with histogram as PNG.
 
-    WARNING: Actually, matplotlib.pyplot.savefig() returns the error
+    WARNING: At present matplotlib.pyplot.savefig() returns the error
     "TypeError: integer argument expected, got float"
     when saving as JPG.
     '''
-    src_image_name, image_extension = os.path.splitext(src_image_file)
-    dst_image_file = src_image_name + '_grey.png'
-    print('Save greyscale image to:\n%s' % dst_image_file)
-
     # read source image to array
     gsimg = np.array(ExtendedImage(src_image_file).greyscale())
 
@@ -63,9 +59,16 @@ def gshistogram(src_image_file):
     # plot the histogram
     ax_hist.hist(gsimg.flatten(),128)
 
-    fig.savefig(dst_image_file)
-    #plt.show()
+    if interactive is True:
+        plt.show()
+    else:
+        # Save the figure
+        src_image_name, image_extension = os.path.splitext(src_image_file)
+        dst_image_file = src_image_name + '_grey.png'
+        print('Save greyscale image to:\n%s' % dst_image_file)
+        fig.savefig(dst_image_file)
+
 
 if __name__ == "__main__":
     for infile in sys.argv[1:]:
-        gshistogram(infile)
+        gshistogram(infile, False)
