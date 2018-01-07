@@ -45,19 +45,27 @@ def gshistogram(src_image_file, interactive=False):
     when saving as JPG.
     '''
     # read source image to array
-    gsimg = np.array(ExtendedImage(src_image_file).greyscale())
+    #gsimg = np.array(ExtendedImage(src_image_file).greyscale())
+    gsimg_raw = ExtendedImage(src_image_file).greyscale()
+    gsimg = np.array(gsimg_raw)
 
-    # Creates a figure and two axes subplot on the same row:
-    # one for the picture, the other for the histogram.
-    fig, (ax_pic, ax_hist) = plt.subplots(1, 2)
+    # Creates a figure and three axes subplot on the same row:
+    # picture, histogram and histogram outline curve.
+    fig, (ax_pic, ax_hist, ax_outline) = plt.subplots(1, 3)
     plt.gray()  # don't use colors
-
     # plot the picture
     ax_pic.imshow(gsimg)
     ax_pic.axis('off')  # clear x- and y-axes
 
     # plot the histogram
     ax_hist.hist(gsimg.flatten(),128)
+
+    # plot the histogram outline curve
+    hg = gsimg_raw.histogram()
+    # hg is a list of pixel counts, one for each pixel value in the source image.
+    # Since the source image has one only band (greyscale),
+    # hg contains 256 pixel counts, that is an index for each shade of grey.
+    ax_outline.plot(hg, color='b')
 
     if interactive is True:
         plt.show()
