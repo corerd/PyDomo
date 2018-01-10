@@ -51,7 +51,7 @@ def gshistogram(src_image_file, interactive=False):
 
     # Creates a figure and three axes subplot on the same row:
     # picture, histogram and histogram outline curve.
-    fig, (ax_pic, ax_hist, ax_outline) = plt.subplots(1, 3)
+    fig, (ax_pic, ax_hist, ax_outline) = plt.subplots(1, 3, figsize=(11, 4))
     plt.gray()  # don't use colors
     # plot the picture
     ax_pic.imshow(gsimg)
