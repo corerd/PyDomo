@@ -60,12 +60,26 @@ def gshistogram(src_image_file, interactive=False):
     # plot the histogram
     ax_hist.hist(gsimg.flatten(),128)
 
-    # plot the histogram outline curve
-    hg = gsimg_raw.histogram()
-    # hg is a list of pixel counts, one for each pixel value in the source image.
+    # Get the pixel counts, one for each pixel value in the source image.
     # Since the source image has one only band (greyscale),
-    # hg contains 256 pixel counts, that is an index for each shade of grey.
-    ax_outline.plot(hg, color='b')
+    # there are 256 pixel counts, that is an index for each shade of grey.
+    pixel_counts = gsimg_raw.histogram()
+
+    # In a greyscale representation, the first 128 values are 'dark' pixels,
+    # the last 128 are 'light' ones.
+    indexes = len(pixel_counts)  # should be 256 (an index for each shade of grey)
+    dark_pixels = sum(pixel_counts[:indexes/2])
+    light_pixels = sum(pixel_counts[indexes/2:])
+
+    # plot the histogram outline curve
+    # text in axis coords (0,0 is lower-left and 1,1 is upper-right)
+    ax_outline.plot(pixel_counts, color='b')
+    ax_outline.text(0.05, 0.95, 'DARK %d' % dark_pixels,
+                    color='red',
+                    transform=ax_outline.transAxes)  # specify axis coords
+    ax_outline.text(0.05, 0.9, 'LIGHT %d' % light_pixels,
+                    color='red',
+                    transform=ax_outline.transAxes)  # specify axis coords
 
     if interactive is True:
         plt.show()
@@ -75,6 +89,9 @@ def gshistogram(src_image_file, interactive=False):
         dst_image_file = src_image_name + '_grey.png'
         print('Save greyscale image to:\n%s' % dst_image_file)
         fig.savefig(dst_image_file)
+
+    # Close the Figure instance fig
+    plt.close(fig)
 
 
 if __name__ == "__main__":
