@@ -95,5 +95,16 @@ def gshistogram(src_image_file, interactive=False):
 
 
 if __name__ == "__main__":
-    for infile in sys.argv[1:]:
-        gshistogram(infile, False)
+    if len(sys.argv[1:]) > 0:
+        imagePathName = sys.argv[1]
+    else:
+        imagePathName = '.'
+    if os.path.isdir(imagePathName):
+        # iterate top directory listing
+        for dirname, dirnames, filenames in os.walk(imagePathName):
+            for imageFileName in filenames:
+                if imageFileName.lower().endswith('.jpg'):
+                    gshistogram(os.path.join(dirname, imageFileName))
+            break  # only top directory listing
+    else:
+        gshistogram(imagePathName)
