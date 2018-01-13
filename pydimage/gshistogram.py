@@ -34,36 +34,15 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-#from pilib import ExtendedImage
-from cvlib import ExtendedImage
+from pilib import ExtendedImage as pilImage
+from cvlib import ExtendedImage as cvImage
 
 
-def gshistogram(src_image_file, interactive=False):
-    '''Convert image to greyscale and save with histogram as PNG.
-
-    WARNING: At present matplotlib.pyplot.savefig() returns the error
-    "TypeError: integer argument expected, got float"
-    when saving as JPG.
-    '''
-    # read source image to array
-    #gsimg = np.array(ExtendedImage(src_image_file).greyscale())
-    gsimg_raw = ExtendedImage(src_image_file).greyscale()
-    gsimg = np.array(gsimg_raw)
-
-    # Creates a figure and three axes subplot on the same row:
-    # picture, histogram and histogram outline curve.
-    fig, (ax_pic, ax_hist, ax_outline) = plt.subplots(1, 3, figsize=(11, 4))
-    # plot the picture
-    ax_pic.imshow(gsimg, cmap=plt.get_cmap('gray'))
-    ax_pic.axis('off')  # clear x- and y-axes
-
-    # plot the histogram
-    ax_hist.hist(gsimg.flatten(),128)
-
+def customHist(axe, img):
     # Get the pixel counts, one for each pixel value in the source image.
     # Since the source image has one only band (greyscale),
     # there are 256 pixel counts, that is an index for each shade of grey.
-    pixel_counts = gsimg_raw.histogram()
+    pixel_counts = img.histogram()
 
     # In a greyscale representation, the first 128 values are 'dark' pixels,
     # the last 128 are 'light' ones.
@@ -73,13 +52,45 @@ def gshistogram(src_image_file, interactive=False):
 
     # plot the histogram outline curve
     # text in axis coords (0,0 is lower-left and 1,1 is upper-right)
-    ax_outline.plot(pixel_counts, color='b')
-    ax_outline.text(0.05, 0.95, 'DARK %d' % dark_pixels,
+    axe.plot(pixel_counts, color='b')
+    axe.text(0.05, 0.95, 'DARK %d' % dark_pixels,
                     color='red',
-                    transform=ax_outline.transAxes)  # specify axis coords
-    ax_outline.text(0.05, 0.9, 'LIGHT %d' % light_pixels,
+                    transform=axe.transAxes)  # specify axis coords
+    axe.text(0.05, 0.9, 'LIGHT %d' % light_pixels,
                     color='red',
-                    transform=ax_outline.transAxes)  # specify axis coords
+                    transform=axe.transAxes)  # specify axis coords
+
+
+def gshistogram(src_image_file, interactive=False):
+    '''Convert image to greyscale both PIL and OpenCV
+     and save with histograms as PNG.
+
+    WARNING: At present matplotlib.pyplot.savefig() returns the error
+    "TypeError: integer argument expected, got float"
+    when saving as JPG.
+    '''
+    # read source image to array
+    gsPilImg_raw = pilImage(src_image_file).greyscale()
+    gsPilImg = np.array(gsPilImg_raw)
+    gsCvImg_raw = cvImage(src_image_file).greyscale()
+    gsCvImg = np.array(gsCvImg_raw)
+
+    # Creates a figure and three axes subplot on the same row:
+    # picture, histogram and histogram outline curve.
+    fig, axes = plt.subplots(2, 3, figsize=(11, 7))
+
+    # plot the picture
+    axes[0, 0].imshow(gsPilImg, cmap=plt.get_cmap('gray'))
+    axes[0, 0].axis('off')  # clear x- and y-axes
+    axes[1, 0].imshow(gsCvImg, cmap=plt.get_cmap('gray'))
+    axes[1, 0].axis('off')  # clear x- and y-axes
+
+    # plot the histogram
+    axes[0, 1].hist(gsPilImg.flatten(),128)
+    axes[1, 1].hist(gsCvImg.flatten(),128)
+
+    customHist(axes[0,2], gsPilImg_raw)
+    customHist(axes[1,2], gsCvImg_raw)
 
     if interactive is True:
         plt.show()
