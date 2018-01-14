@@ -76,6 +76,8 @@ class Benchmark_PIL(object):
         self.deltat_min = sys.maxint
         self.deltat_max = 0
         self.elapsedt = 0
+        self.width_ave = 0
+        self.height_ave = 0
 
     def run(self, src_image_file):
         '''Compute the spent time
@@ -84,6 +86,9 @@ class Benchmark_PIL(object):
         '''
         self.runs = self.runs + 1
         img = Image.open(src_image_file)
+        width, height = img.size
+        self.width_ave = self.width_ave + width
+        self.height_ave = self.height_ave + height
         deltat = time()
         img = img.convert(mode='L')
         pixel_counts = img.histogram()
@@ -95,7 +100,8 @@ class Benchmark_PIL(object):
         self.elapsedt = self.elapsedt + deltat
 
     def report(self):
-        print('Read %d pictures in %f seconds' % (self.runs, self.elapsedt))
+        print('Read %d %dx%d pictures in %f seconds' %
+            (self.runs, (self.width_ave/self.runs), (self.height_ave/self.runs), self.elapsedt))
         print('deltat min: %fs' % self.deltat_min)
         print('deltat max: %fs' % self.deltat_max)
         print('deltat average %fs:' % (self.elapsedt / self.runs))
@@ -108,6 +114,8 @@ class Benchmark_OpenCV(object):
         self.deltat_min = sys.maxint
         self.deltat_max = 0
         self.elapsedt = 0
+        self.width_ave = 0
+        self.height_ave = 0
 
     def run(self, src_image_file):
         '''Compute the spent time
@@ -117,6 +125,9 @@ class Benchmark_OpenCV(object):
         self.runs = self.runs + 1
         #img = cv2.imread(src_image_file, cv2.IMREAD_GRAYSCALE)
         img = cv2.imread(src_image_file)
+        height, width = img.shape[:2]
+        self.width_ave = self.width_ave + width
+        self.height_ave = self.height_ave + height
         deltat = time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         pixel_counts = cv2.calcHist([img],[0],None,[256],[0,256])
@@ -128,7 +139,8 @@ class Benchmark_OpenCV(object):
         self.elapsedt = self.elapsedt + deltat
 
     def report(self):
-        print('Read %d pictures in %f seconds' % (self.runs, self.elapsedt))
+        print('Read %d %dx%d pictures in %f seconds' %
+            (self.runs, (self.width_ave/self.runs), (self.height_ave/self.runs), self.elapsedt))
         print('deltat min: %fs' % self.deltat_min)
         print('deltat max: %fs' % self.deltat_max)
         print('deltat average %fs:' % (self.elapsedt / self.runs))
