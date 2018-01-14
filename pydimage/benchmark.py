@@ -28,6 +28,8 @@ from __future__ import print_function
 
 import os
 import sys
+import cv2
+from PIL import Image
 from time import time
 from pilib import ExtendedImage as pilImage
 from cvlib import ExtendedImage as cvImage
@@ -43,10 +45,16 @@ class Benchmark(object):
         self.elapsedt = 0
 
     def run(self, src_image_file):
+        '''Compute the spent time
+        converting a color image to greyscale
+        and returning the pixel counts (histogram).
+        '''
         self.runs = self.runs + 1
+        #img = self.imageClass(src_image_file).greyscale()
+        img = self.imageClass(src_image_file)
         deltat = time()
-        img = self.imageClass(src_image_file).greyscale()
-        img.histogram()
+        img.greyscale()
+        pixel_counts = img.histogram()
         deltat = time() - deltat
         if self.deltat_min > deltat:
             self.deltat_min = deltat
@@ -55,11 +63,75 @@ class Benchmark(object):
         self.elapsedt = self.elapsedt + deltat
 
     def report(self):
-        print('Runs:', self.runs)
-        print('Time:', self.elapsedt)
-        print('deltat_min:', self.deltat_min)
-        print('deltat_max:', self.deltat_max)
-        print('deltat_med:', self.elapsedt / self.runs)
+        print('Read %d pictures in %f seconds' % (self.runs, self.elapsedt))
+        print('deltat min: %fs' % self.deltat_min)
+        print('deltat max: %fs' % self.deltat_max)
+        print('deltat average %fs:' % (self.elapsedt / self.runs))
+
+
+class Benchmark_PIL(object):
+
+    def __init__(self):
+        self.runs = 0
+        self.deltat_min = sys.maxint
+        self.deltat_max = 0
+        self.elapsedt = 0
+
+    def run(self, src_image_file):
+        '''Compute the spent time
+        converting a color image to greyscale
+        and returning the pixel counts (histogram).
+        '''
+        self.runs = self.runs + 1
+        img = Image.open(src_image_file)
+        deltat = time()
+        img = img.convert(mode='L')
+        pixel_counts = img.histogram()
+        deltat = time() - deltat
+        if self.deltat_min > deltat:
+            self.deltat_min = deltat
+        if self.deltat_max < deltat:
+            self.deltat_max = deltat
+        self.elapsedt = self.elapsedt + deltat
+
+    def report(self):
+        print('Read %d pictures in %f seconds' % (self.runs, self.elapsedt))
+        print('deltat min: %fs' % self.deltat_min)
+        print('deltat max: %fs' % self.deltat_max)
+        print('deltat average %fs:' % (self.elapsedt / self.runs))
+
+
+class Benchmark_OpenCV(object):
+
+    def __init__(self):
+        self.runs = 0
+        self.deltat_min = sys.maxint
+        self.deltat_max = 0
+        self.elapsedt = 0
+
+    def run(self, src_image_file):
+        '''Compute the spent time
+        converting a color image to greyscale
+        and returning the pixel counts (histogram).
+        '''
+        self.runs = self.runs + 1
+        #img = cv2.imread(src_image_file, cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(src_image_file)
+        deltat = time()
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        pixel_counts = cv2.calcHist([img],[0],None,[256],[0,256])
+        deltat = time() - deltat
+        if self.deltat_min > deltat:
+            self.deltat_min = deltat
+        if self.deltat_max < deltat:
+            self.deltat_max = deltat
+        self.elapsedt = self.elapsedt + deltat
+
+    def report(self):
+        print('Read %d pictures in %f seconds' % (self.runs, self.elapsedt))
+        print('deltat min: %fs' % self.deltat_min)
+        print('deltat max: %fs' % self.deltat_max)
+        print('deltat average %fs:' % (self.elapsedt / self.runs))
 
 
 if __name__ == "__main__":
@@ -70,17 +142,25 @@ if __name__ == "__main__":
     if os.path.isdir(imagePathName):
         # iterate top directory listing
         bmPIL = Benchmark(pilImage)
+        bmPIL_native = Benchmark_PIL()
         bmCV = Benchmark(cvImage)
+        bmCV_native = Benchmark_OpenCV()
         print('Running...')
         for dirname, dirnames, filenames in os.walk(imagePathName):
             for imageFileName in filenames:
                 if imageFileName.lower().endswith('.jpg'):
                     bmPIL.run(os.path.join(dirname, imageFileName))
+                    bmPIL_native.run(os.path.join(dirname, imageFileName))
                     bmCV.run(os.path.join(dirname, imageFileName))
+                    bmCV_native.run(os.path.join(dirname, imageFileName))
             break  # only top directory listing
         print('\nPIL stats:')
         bmPIL.report()
         print('\nOpenCV stats:')
         bmCV.report()
+        print('\nPIL native stats:')
+        bmPIL_native.report()
+        print('\nOpenCV native stats:')
+        bmCV_native.report()
     else:
         print('Directory required')
