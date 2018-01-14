@@ -51,7 +51,8 @@ class ExtendedImage(object):
 
     def greyscale(self):
         '''Convert to greyscale'''
-        return self._img.convert(mode='L')  #<-- ExtendedImage delegates to self._img
+        self._img = self._img.convert(mode='L')  #<-- ExtendedImage delegates to self._img
+        return self
 
 
 def convert2greyscale(src_image_file):
