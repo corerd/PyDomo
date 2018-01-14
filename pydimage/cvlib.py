@@ -41,6 +41,7 @@ class ExtendedImage(object):
         '''Opens and identifies the given image file.
         OpenCV returns an uint8 image while matplotlib requires float32.
         '''
+        self.__VERSION__ = 'OpenCV ' + cv2.__version__
         self._img = cv2.imread(imageFileName).astype(float32)
 
     def __getattr__(self, key):

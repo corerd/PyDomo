@@ -45,6 +45,7 @@ def imageHist(ax_row, img_raw):
     # plot the picture
     ax_row[0].imshow(img, cmap=plt.get_cmap('gray'))
     ax_row[0].axis('off')  # clear x- and y-axes
+    ax_row[0].set_title(img_raw.__VERSION__)
 
     # plot matplotlib histogram
     ax_row[1].hist(img.flatten(),128)

@@ -40,6 +40,7 @@ class ExtendedImage(object):
 
     def __init__(self, imageFileName):
         '''Opens and identifies the given image file'''
+        self.__VERSION__ = 'PIL ' + Image.VERSION
         self._img = Image.open(imageFileName)
 
     def __getattr__(self, key):
