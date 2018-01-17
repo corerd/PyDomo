@@ -38,6 +38,30 @@ wget --tries=2 --timeout=10 http://<user>:<pass>@<local_ip>:<port>/cgi-bin/jpg/i
 See also: Link: http://stackoverflow.com/a/11094891
 """
 
+from __future__ import print_function
+
+
+def gshistogram(byteimage):
+    '''Convert the bytearray image buffer to greyscale and
+    returns dark_pixels_count, light_pixels_count
+    '''
+    import cv2
+    import numpy as np
+
+    arrayimage = np.frombuffer(byteimage, dtype=np.uint8)
+    grayimg = cv2.imdecode(arrayimage, cv2.IMREAD_GRAYSCALE)
+    #cv2.imwrite('gray.jpg', grayimg)
+
+    # Get the pixel counts, one for each pixel value in the source image.
+    # Since the source image has one only band (greyscale),
+    # there are 256 pixel counts, that is an index for each shade of grey.
+    pixel_counts = cv2.calcHist([grayimg],[0],None,[256],[0,256])
+
+    # In a greyscale representation, the first 128 values are 'dark' pixels,
+    # the last 128 are 'light' ones.
+    indexes = len(pixel_counts)  # should be 256 (an index for each shade of grey)
+    return sum(pixel_counts[:indexes/2]), sum(pixel_counts[indexes/2:])
+
 
 def lightsIP(cameraUrl, username, password, on):
     '''Switch IR leds on/off
@@ -138,6 +162,13 @@ def imageCapture(cameraDesc, imageFileName):
     if not retVal:
         # grabImage returns errors
         return False
+
+    '''BEGIN of dark image detection'''
+    dark_pixels, light_pixels = gshistogram(jpgImage)
+    print('dark_pixels %d' % dark_pixels)
+    print('light_pixels %d' % light_pixels)
+    '''END of dark image detection'''
+
     try:
         with open(imageFileName, 'wb') as f:
             f.write(jpgImage)
