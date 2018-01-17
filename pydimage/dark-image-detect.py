@@ -61,7 +61,7 @@ def listDarkImage(src_image_file, interactive=False):
         # OpenCV imread function doesn't raise an exception if the file doesn't exist,
         # then provide '[Errno 2] No such file or directory' IOError exception.
         raise IOError(ENOENT, "%s: '%s'" % (os.strerror(ENOENT), src_image_file))
-    gsimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert to grayscale
+    gsimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert to greyscale
 
     # Get the pixel counts, one for each pixel value in the source image.
     # Since the source image has one only band (greyscale),
@@ -77,8 +77,15 @@ def listDarkImage(src_image_file, interactive=False):
     cv2.putText(gsimg,'Dark pixels: %d' % dark_pixels, (1,30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255)
     cv2.putText(gsimg,'Light pixels: %d' % light_pixels, (1,60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255)
 
+    # Save the figure
+    src_image_name, image_extension = os.path.splitext(src_image_file)
+    dst_image_file = src_image_name + '_grey.jpg'
+    print('Save greyscale image to:\n%s' % dst_image_file)
+    cv2.imwrite(dst_image_file, gsimg)
+
     if interactive is True:
-        cv2.imshow('Gray scale', gsimg)
+        # Display the figure
+        cv2.imshow(os.path.basename(src_image_file), gsimg)
         while True:
             k = cv2.waitKey(0) & 0xFF
             if k == 27: break             # ESC key to exit
