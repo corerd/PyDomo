@@ -212,8 +212,8 @@ def imageCapture(cameraDesc, imageFileName):
             except KeyError:
                 username = ''
                 password = ''
-            print('Image is Dark', file=stderr)
-            print('Connect <%s>:<%s>@%s' % (username, password, irLed_ctrl_url), file=stderr)
+            print('Recover a Dark Image', file=stderr)
+            #print('Connect <%s>:<%s>@%s' % (username, password, irLed_ctrl_url), file=stderr)
             irLedOk = lightsIP(irLed_ctrl_url, username, password, True)
             if irLedOk is False:
                 # TODO check the result
