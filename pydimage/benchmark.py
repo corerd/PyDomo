@@ -151,21 +151,38 @@ if __name__ == "__main__":
         imagePathName = sys.argv[1]
     else:
         imagePathName = '.'
+    loop_cnt = 0
+    bmPIL = Benchmark(pilImage)
+    bmPIL_native = Benchmark_PIL()
+    bmCV = Benchmark(cvImage)
+    bmCV_native = Benchmark_OpenCV()
     if os.path.isdir(imagePathName):
         # iterate top directory listing
-        bmPIL = Benchmark(pilImage)
-        bmPIL_native = Benchmark_PIL()
-        bmCV = Benchmark(cvImage)
-        bmCV_native = Benchmark_OpenCV()
-        print('Running...')
         for dirname, dirnames, filenames in os.walk(imagePathName):
             for imageFileName in filenames:
                 if imageFileName.lower().endswith('.jpg'):
+                    if (loop_cnt % 20) == 0:
+                        print('Running loop %d...' % (loop_cnt+1))
+                    loop_cnt = loop_cnt + 1
                     bmPIL.run(os.path.join(dirname, imageFileName))
                     bmPIL_native.run(os.path.join(dirname, imageFileName))
                     bmCV.run(os.path.join(dirname, imageFileName))
                     bmCV_native.run(os.path.join(dirname, imageFileName))
             break  # only top directory listing
+    else:
+        if imagePathName.lower().endswith('.jpg'):
+            # loop on single file
+            for loop_cnt in range(500):
+                if (loop_cnt % 10) == 0:
+                    print('Running loop %d...' % (loop_cnt+1))
+                bmPIL.run(imagePathName)
+                bmPIL_native.run(imagePathName)
+                bmCV.run(imagePathName)
+                bmCV_native.run(imagePathName)
+            loop_cnt = loop_cnt + 1
+        else:
+            print('JPG file required')
+    if loop_cnt > 0:
         print('\nPIL stats:')
         bmPIL.report()
         print('\nOpenCV stats:')
@@ -174,5 +191,3 @@ if __name__ == "__main__":
         bmPIL_native.report()
         print('\nOpenCV native stats:')
         bmCV_native.report()
-    else:
-        print('Directory required')
