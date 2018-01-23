@@ -218,7 +218,9 @@ def imageCapture(cameraDesc, imageFileName):
             if irLedOk is False:
                 # TODO check the result
                 print('FAIL to switch IrLeds ON', file=stderr)
-            sleep(1)
+            else:
+                # wait for IrLeds settling
+                sleep(4)
             grabOk, jpgImage = grabImage(cameraDesc)
             irLedOk = lightsIP(irLed_ctrl_url, username, password, False)
             if irLedOk is False:
