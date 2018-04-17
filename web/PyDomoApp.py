@@ -46,13 +46,19 @@ from os import curdir, sep, path
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from SocketServer import ThreadingMixIn
+from urlparse import urlparse, parse_qsl
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from datetime import datetime
 from sys import stderr
-from cameraman.camgrab import grabImage
+from cameraman.camgrab import grabImage, lightsIP
+from time import sleep
 import ssl
 import urllib
 import base64
+
+
+'''Define the name of the HOME page'''
+HOME_PAGE='PyDomoSvr-main.htm'
 
 
 '''Define the name of the directory for static files,
@@ -112,7 +118,13 @@ STATIC_ENDPOINT = THIS_MODULE_DIR + STATIC_FILES_DIR
 
 # Globals
 '''Create an instance of camera_desc_list'''
-camera_desc_list = {}
+camera_desc_list = []
+
+class CameraSnapshot( object ):
+    '''Subclass of object
+    See: https://stackoverflow.com/a/285086
+    '''
+    pass
 
 
 def binary2uri(binary_data):
@@ -123,7 +135,7 @@ def binary2uri(binary_data):
     An other approach can be found here:
     http://stackoverflow.com/a/12035037
 
-    Returns the base64 encoded and interpolated binary_data.
+    Return the base64 encoded and interpolated binary_data.
     '''
     base64_data = base64.b64encode(binary_data)
     return '{}'.format(urllib.quote(base64_data.rstrip('\n')))
@@ -133,8 +145,9 @@ def get_snapshots_list(cameras_list):
     '''Grab snapshots from a list of web cameras.
     The list of web cameras is read from the configuration file.
 
-    Returns an image list encoded to base64 and interpolated in data URIs.
+    Return an image list encoded to base64 and interpolated in data URIs.
     '''
+    snapshots_idx = 0
     snapshots_list = []
     for camera_desc in cameras_list:
         '''The properties (ip address, optional credentials) of each web camera
@@ -146,12 +159,20 @@ def get_snapshots_list(cameras_list):
             then they are encoded to base64 and interpolated
             and appended to the list.
             '''
-            snapshots_list.append(binary2uri(jpg_image))
+            snapshot = CameraSnapshot()
+            snapshot.jpeg_base64 = binary2uri(jpg_image)
+            snapshot.nightvwCamIdx = -1  # capability not present
+            try:
+                if len(camera_desc['optional-irled']['url-ctrl']) > 0:
+                    snapshot.nightvwCamIdx = snapshots_idx
+            except KeyError:
+                pass
         else:
-            '''grabImage returns errors
-            return an empty string
+            '''grabImage returns errors.
             '''
-            snapshots_list.append(None)
+            snapshot = None
+        snapshots_list.append(snapshot)
+        snapshots_idx = snapshots_idx + 1
     return snapshots_list
 
 
@@ -184,16 +205,105 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
         self.request.settimeout(self.socket_timeout)
         SimpleHTTPRequestHandler.setup(self)
 
-    def do_mimetype_HEAD(self, mimetype):
+    def write_header(self, mimetype):
         '''send header according to mimetype'''
         self.send_response(200)
         self.send_header('Content-type', mimetype)
         self.end_headers()
 
+    def write_template(self, template_path):
+        '''Render and send the template file'''
+        now = datetime.now()
+        datetime_stamp = now.strftime("%d/%b/%Y %H:%M:%S")
+        cyear = now.strftime("%y")
+        try:
+            template = JINJA_ENV.get_template(template_path)
+            self.write_header('text/html')
+            self.wfile.write(template.render(
+                home_page=template_path,
+                snapshots=get_snapshots_list(camera_desc_list),
+                proj_name=WebPagesHandler.get_site_title(),
+                datetime_stamp=datetime_stamp,
+                cyear=cyear
+                ))
+        except TemplateNotFound as e:
+                self.send_error(404, 'Template Not Found: %s' % e.name)
+
+    def split_pathNparams(self, url):
+        '''Parse GET request URL into path and query string components.
+        Return path and query string as a dictionary of name, value pairs.
+
+        About accessing http request parameters.
+        https://stackoverflow.com/q/2490162
+        '''
+        parsed_path = urlparse(url)
+        path = parsed_path.path
+        if path == "/":
+            path = "/" + HOME_PAGE
+        # parse_qsl returns a list of name, value pairs
+        # to convert into a dictionary.
+        return path, dict(parse_qsl(parsed_path.query))
+
+    def get_form_data(self):
+        '''Retrieve the query string (name/value pairs) from POST message body.
+        Return the query string as a dictionary of name, value pairs.
+
+        See:
+        https://pymotw.com/2/BaseHTTPServer/#http-post
+        https://gist.github.com/huyng/814831
+        '''
+        content_length = self.headers.getheaders('content-length')
+        length = int(content_length[0]) if content_length else 0
+        # parse_qsl returns a list of name, value pairs:
+        # convert into a dictionary and return.
+        return dict(parse_qsl(self.rfile.read(length)))
+
+    def process_POST_data(self, params):
+        try:
+            camIdx = int(params['camIdx'])
+            irLed_on = True if int(params['IRLed'])>0 else False
+        except:
+            print('POST data unknown', file=stderr)
+            return
+        try:
+            camera_desc = camera_desc_list[camIdx]
+        except IndexError:
+            print('IRLed camera index out of range', file=stderr)
+            return
+        try:
+             irLed_ctrl_url = camera_desc['optional-irled']['url-ctrl']
+        except KeyError:
+            print('IRLed control url not found', file=stderr)
+            return
+        try:
+            username = camera_desc['optional-auth']['user-name']
+            password = camera_desc['optional-auth']['password']
+        except KeyError:
+            username = ''
+            password = ''
+        if lightsIP(irLed_ctrl_url, username, password, irLed_on) is False:
+            print('Unable to connect <%s>:<%s>@%s' % (username, password, irLed_ctrl_url),
+                                                                    file=stderr)
+        sleep(1)
+
+    def do_POST(self):
+        '''Handler for data POSTed
+        assuming that the form data is sent to the templaate page
+        (i.e. self.path == "/"+HOME_PAGE).
+        '''
+        # Replace URL parameters with form data
+        self.path, params = self.split_pathNparams(self.path)
+        params = self.get_form_data()
+
+        self.process_POST_data(params)
+        self.write_template(self.path)
+
     def do_GET(self):
         '''Handler for the GET requests'''
-        if self.path == "/":
-            self.path = "/PyDomoSvr-main.htm"
+        self.path, params = self.split_pathNparams(self.path)
+        # print the list of  name, value pairs.
+        #for name in params.keys():
+        #    print('%s : %s' % (name, params[name]), file=stderr)
 
         #Check the file extension required and
         #set the right mime type
@@ -227,27 +337,13 @@ class WebPagesHandler(SimpleHTTPRequestHandler):
 
         if sendReply is True:
             if is_jinja_template is True:
-                #Render the template file and send it
-                now = datetime.now()
-                datetime_stamp = now.strftime("%d/%b/%Y %H:%M:%S")
-                cyear = now.strftime("%y")
-                try:
-                    template = JINJA_ENV.get_template(self.path)
-                    self.do_mimetype_HEAD(mimetype)
-                    self.wfile.write(template.render(
-                        jpeg_base64_list=get_snapshots_list(camera_desc_list),
-                        proj_name=WebPagesHandler.get_site_title(),
-                        datetime_stamp=datetime_stamp,
-                        cyear=cyear
-                        ))
-                except TemplateNotFound as e:
-                        self.send_error(404, 'Template Not Found: %s' % e.name)
+                self.write_template(self.path)
             else:
                 #Open the static file requested and send it
                 static_file_path = STATIC_ENDPOINT + self.path
                 try:
                     static_file = open(static_file_path)
-                    self.do_mimetype_HEAD(mimetype)
+                    self.write_header(mimetype)
                     self.wfile.write(static_file.read())
                     static_file.close()
                 except IOError:
@@ -347,7 +443,13 @@ class PyDomoApp:
         '''Define the handler of the incoming request.
         '''
         global camera_desc_list
-        camera_desc_list = app_cfg['cameras-list']
+        for camera_desc in app_cfg['cameras-list']:
+            # store only camera descriptor with a valid source key
+            try:
+                if len(camera_desc['source']) > 0:
+                    camera_desc_list.append(camera_desc)
+            except KeyError:
+                pass
         WebPagesHandler.set_site_title(app_cfg['site']['title'])
         self.host_name = app_cfg['site']['host']['name']
         self.host_port = int(app_cfg['site']['host']['port'])

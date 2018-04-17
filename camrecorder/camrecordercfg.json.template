@@ -30,6 +30,11 @@
                 "user-name" : "<ip_cam_2 user>",
                 "password": "<ip_cam_2 password>"
             },
+            "optional-irled": {
+                "url-ctrl" : "<camera_2 irled_ctrl_protocol_and_address>",
+                "light-threshold" : "<camera_2 optional_light_threshold>",
+                "opt-light-threshold" : "<threshold_light_pixels>"
+            },
             "source": "<ip_cam_2 protocol_and_address>"
         }
     ]
