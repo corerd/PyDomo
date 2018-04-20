@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2012 Google Inc.
 #
@@ -59,6 +59,8 @@ IMAPFE and pass it as the second argument to the AUTHENTICATE command.
 
   a AUTHENTICATE XOAUTH2 a9sha9sfs[...]9dfja929dk==
 """
+
+from __future__ import print_function
 
 import base64
 import imaplib
@@ -288,7 +290,7 @@ def TestSmtpAuthentication(user, auth_string):
 def RequireOptions(options, *args):
   missing = [arg for arg in args if getattr(options, arg) is None]
   if missing:
-    print 'Missing options: %s' % ' '.join(missing)
+    print('Missing options: %s' % ' '.join(missing))
     sys.exit(-1)
 
 
@@ -299,22 +301,22 @@ def main(argv):
     RequireOptions(options, 'client_id', 'client_secret')
     response = RefreshToken(options.client_id, options.client_secret,
                             options.refresh_token)
-    print 'Access Token: %s' % response['access_token']
-    print 'Access Token Expiration Seconds: %s' % response['expires_in']
+    print('Access Token: %s' % response['access_token'])
+    print('Access Token Expiration Seconds: %s' % response['expires_in'])
   elif options.generate_oauth2_string:
     RequireOptions(options, 'user', 'access_token')
     print ('OAuth2 argument:\n' +
            GenerateOAuth2String(options.user, options.access_token))
   elif options.generate_oauth2_token:
     RequireOptions(options, 'client_id', 'client_secret')
-    print 'To authorize token, visit this url and follow the directions:'
-    print '  %s' % GeneratePermissionUrl(options.client_id, options.scope)
+    print('To authorize token, visit this url and follow the directions:')
+    print('  %s' % GeneratePermissionUrl(options.client_id, options.scope))
     authorization_code = raw_input('Enter verification code: ')
     response = AuthorizeTokens(options.client_id, options.client_secret,
                                 authorization_code)
-    print 'Refresh Token: %s' % response['refresh_token']
-    print 'Access Token: %s' % response['access_token']
-    print 'Access Token Expiration Seconds: %s' % response['expires_in']
+    print('Refresh Token: %s' % response['refresh_token'])
+    print('Access Token: %s' % response['access_token'])
+    print('Access Token Expiration Seconds: %s' % response['expires_in'])
   elif options.test_imap_authentication:
     RequireOptions(options, 'user', 'access_token')
     TestImapAuthentication(options.user,
@@ -327,7 +329,7 @@ def main(argv):
                              base64_encode=False))
   else:
     options_parser.print_help()
-    print 'Nothing to do, exiting.'
+    print('Nothing to do, exiting.')
     return
 
 
