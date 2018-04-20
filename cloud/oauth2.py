@@ -61,6 +61,7 @@ IMAPFE and pass it as the second argument to the AUTHENTICATE command.
 """
 
 from __future__ import print_function
+from future.utils import iteritems
 
 import base64
 import imaplib
@@ -158,7 +159,7 @@ def FormatUrlParams(params):
     A URL query string version of the given parameters.
   """
   param_fragments = []
-  for param in sorted(params.iteritems(), key=lambda x: x[0]):
+  for param in sorted(iteritems(params), key=lambda x: x[0]):
     param_fragments.append('%s=%s' % (param[0], UrlEscape(param[1])))
   return '&'.join(param_fragments)
 
