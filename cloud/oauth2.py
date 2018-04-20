@@ -69,7 +69,19 @@ import json
 from optparse import OptionParser
 import smtplib
 import sys
-import urllib
+
+try:
+  # Python 2.X
+  from urllib import quote as urllib_quote
+  from urllib import unquote as urllib_unquote
+  from urllib import urlencode as urllib_urlencode
+  from urllib2 import urlopen as urllib_urlopen
+except ImportError:
+  # Python 3+
+  from urllib.parse import quote as urllib_quote
+  from urllib.parse import unquote as urllib_unquote
+  from urllib.parse import urlencode as urllib_urlencode
+  from urllib.request import urlopen as urllib_urlopen
 
 
 def SetupOptionParser():
@@ -141,12 +153,12 @@ def AccountsUrl(command):
 
 def UrlEscape(text):
   # See OAUTH 5.1 for a definition of which characters need to be escaped.
-  return urllib.quote(text, safe='~-._')
+  return urllib_quote(text, safe='~-._')
 
 
 def UrlUnescape(text):
   # See OAUTH 5.1 for a definition of which characters need to be escaped.
-  return urllib.unquote(text)
+  return urllib_unquote(text)
 
 
 def FormatUrlParams(params):
@@ -208,7 +220,7 @@ def AuthorizeTokens(client_id, client_secret, authorization_code):
   params['grant_type'] = 'authorization_code'
   request_url = AccountsUrl('o/oauth2/token')
 
-  response = urllib.urlopen(request_url, urllib.urlencode(params)).read()
+  response = urllib_urlopen(request_url, urllib_urlencode(params)).read()
   return json.loads(response)
 
 
@@ -232,7 +244,7 @@ def RefreshToken(client_id, client_secret, refresh_token):
   params['grant_type'] = 'refresh_token'
   request_url = AccountsUrl('o/oauth2/token')
 
-  response = urllib.urlopen(request_url, urllib.urlencode(params)).read()
+  response = urllib_urlopen(request_url, urllib_urlencode(params)).read()
   return json.loads(response)
 
 
