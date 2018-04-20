@@ -62,6 +62,7 @@ IMAPFE and pass it as the second argument to the AUTHENTICATE command.
 
 from __future__ import print_function
 from future.utils import iteritems
+from builtins import input
 
 import base64
 import imaplib
@@ -324,7 +325,7 @@ def main(argv):
     RequireOptions(options, 'client_id', 'client_secret')
     print('To authorize token, visit this url and follow the directions:')
     print('  %s' % GeneratePermissionUrl(options.client_id, options.scope))
-    authorization_code = raw_input('Enter verification code: ')
+    authorization_code = input('Enter verification code: ')
     response = AuthorizeTokens(options.client_id, options.client_secret,
                                 authorization_code)
     print('Refresh Token: %s' % response['refresh_token'])
