@@ -71,6 +71,10 @@ from optparse import OptionParser
 import smtplib
 import sys
 
+# urllib Python 2/3 compatible code.
+# urllib2 provides some extra functionality, namely the urlopen() function
+# can allow you to specify headers.
+# See: https://stackoverflow.com/a/2018074
 try:
   # Python 2.X
   from urllib import quote as urllib_quote
@@ -221,8 +225,8 @@ def AuthorizeTokens(client_id, client_secret, authorization_code):
   params['grant_type'] = 'authorization_code'
   request_url = AccountsUrl('o/oauth2/token')
 
-  response = urllib_urlopen(request_url, urllib_urlencode(params)).read()
-  return json.loads(response)
+  response = urllib_urlopen(request_url, urllib_urlencode(params).encode("utf-8")).read()
+  return json.loads(response.decode('utf-8'))
 
 
 def RefreshToken(client_id, client_secret, refresh_token):
@@ -245,8 +249,8 @@ def RefreshToken(client_id, client_secret, refresh_token):
   params['grant_type'] = 'refresh_token'
   request_url = AccountsUrl('o/oauth2/token')
 
-  response = urllib_urlopen(request_url, urllib_urlencode(params)).read()
-  return json.loads(response)
+  response = urllib_urlopen(request_url, urllib_urlencode(params).encode("utf-8")).read()
+  return json.loads(response.decode('utf-8'))
 
 
 def GenerateOAuth2String(username, access_token, base64_encode=True):
@@ -264,7 +268,9 @@ def GenerateOAuth2String(username, access_token, base64_encode=True):
   """
   auth_string = 'user=%s\1auth=Bearer %s\1\1' % (username, access_token)
   if base64_encode:
-    auth_string = base64.b64encode(auth_string)
+    # encode auth_string in a byte stream
+    # and then decode the returned bytes in a string
+    auth_string = base64.b64encode(auth_string.encode()).decode()
   return auth_string
 
 
