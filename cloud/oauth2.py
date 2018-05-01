@@ -71,22 +71,24 @@ from optparse import OptionParser
 import smtplib
 import sys
 
+PY3 = sys.version_info > (3,)
+
 # urllib Python 2/3 compatible code.
 # urllib2 provides some extra functionality, namely the urlopen() function
 # can allow you to specify headers.
 # See: https://stackoverflow.com/a/2018074
-try:
-  # Python 2.X
-  from urllib import quote as urllib_quote
-  from urllib import unquote as urllib_unquote
-  from urllib import urlencode as urllib_urlencode
-  from urllib2 import urlopen as urllib_urlopen
-except ImportError:
+if PY3:
   # Python 3+
   from urllib.parse import quote as urllib_quote
   from urllib.parse import unquote as urllib_unquote
   from urllib.parse import urlencode as urllib_urlencode
   from urllib.request import urlopen as urllib_urlopen
+else:
+  # Python 2.X
+  from urllib import quote as urllib_quote
+  from urllib import unquote as urllib_unquote
+  from urllib import urlencode as urllib_urlencode
+  from urllib2 import urlopen as urllib_urlopen
 
 
 def SetupOptionParser():
@@ -304,7 +306,8 @@ def TestSmtpAuthentication(user, auth_string):
   smtp_conn.set_debuglevel(True)
   smtp_conn.ehlo('test')
   smtp_conn.starttls()
-  smtp_conn.docmd('AUTH', 'XOAUTH2 ' + base64.b64encode(auth_string))
+  auth_string_encoded = base64.b64encode(auth_string.encode()).decode()
+  smtp_conn.docmd('AUTH', 'XOAUTH2 ' + auth_string_encoded)
 
 
 def RequireOptions(options, *args):
