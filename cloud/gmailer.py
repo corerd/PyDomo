@@ -236,7 +236,7 @@ def get_auth_parms(json_file, *kparms, **kwverbose):
     invalid = False
     parms_dataset = None
     try:
-        with open(json_file, 'rt') as parms_file:
+        with open(json_file, 'r') as parms_file:
             parms = {}
             parms_dataset = json.load(parms_file)
             for pkey in kparms:
@@ -331,8 +331,8 @@ def set_oauth_configuration(config_file, secrets):
     auth_data = {}
     auth_data['refresh_token'] = response['refresh_token']
     auth_data['access_token'] = response['access_token']
-    #auth_data['access_token_expire'] = \
-    #        datetime.datetime.now() + datetime.timedelta(seconds=expire_seconds)
+    auth_data['access_token_expire'] = \
+            str(datetime.datetime.now() + datetime.timedelta(seconds=expire_seconds))
     auth_data['user_email'] = input('Enter User e-mail: ')
     with open(config_file, 'w') as outfile:
         json.dump(auth_data, outfile)
