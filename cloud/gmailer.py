@@ -274,9 +274,9 @@ def get_auth_parms(json_file, *kparms, **kwverbose):
     return (parms, invalid)
 
 
-def test_smtp_authentication(auth_string, verbose=False):
-    """Authenticates to SMTP with the given auth_string be means of
-    OAuth 2.0 Mechanism.
+def test_smtp_authentication(user, auth_string, verbose=False):
+    """Authenticates to SMTP with the given auth_string by means of
+    Simple Authentication and Security Layer (SASL) XOAUTH2 Mechanism.
     See: https://developers.google.com/gmail/imap/xoauth2-protocol
          https://www.fehcom.de/qmail/smtpauth.html
 
@@ -310,13 +310,37 @@ def test_smtp_authentication(auth_string, verbose=False):
         smtp_conn.set_debuglevel(True)
     smtp_conn.ehlo('test')
     smtp_conn.starttls()
-    auth_string_encoded = base64.b64encode(auth_string.encode()).decode()
-    retcode, retmsg = smtp_conn.docmd('AUTH', 'XOAUTH2 ' + auth_string_encoded)
+
+    # The SMTP AUTH Command:
+    # AUTH XOAUTH2 initial_response
+    #
+    # XOAUTH2 is the SASL authentication mechanism.
+    #
+    # The SASL XOAUTH2 initial_response has the following format:
+    # base64("user=" {User} "^Aauth=Bearer " {Access Token} "^A^A")
+    # where ^A represents a Control+A (\001).
+    initial_response = base64.b64encode(auth_string.encode()).decode()
+    retcode, retmsg = smtp_conn.docmd('AUTH', 'XOAUTH2 ' + initial_response)
     if retcode == 334:
+        # Intermediate response to the AUTH command
+        # containing an error message in the format: base64({JSON-Body}).
+        # The JSON-Body contains three values: status, schemes and scope.
         if verbose is True:
-            print( 'retcode (334); BASE64 decoded Msg',
-                        base64.b64decode(retmsg).decode() )
-        retcode, retmsg = smtp_conn.docmd(' ')
+            print( 'reply: retcode (334); BASE64 decoded Msg',
+                                base64.b64decode(retmsg).decode() )
+        # The SASL protocol requires clients to send an empty message
+        # to an intermediate response.
+        retcode, retmsg = smtp_conn.docmd('')
+
+    if retcode == 235:
+        # Authentication Succeeded
+        print()
+        print('Send email')
+        recipient_reply = smtp_conn.sendmail(user, user, 'Hello Gmail')
+        if len(recipient_reply) > 0:
+            print('Some recipient was refused:')
+            print(recipient_reply)
+
     return retcode, retmsg
 
 
@@ -325,8 +349,8 @@ def set_oauth_configuration(config_file, secrets):
     print('To authorize token, visit this url and follow the directions:')
     print('  %s' % oauth2.GeneratePermissionUrl(secrets['client_id'], scope))
     authorization_code = input('Enter verification code: ')
-    response = oauth2.AuthorizeTokens(secrets['client_id'], secrets['client_secret'],
-                                authorization_code)
+    response = oauth2.AuthorizeTokens( secrets['client_id'], secrets['client_secret'],
+                                        authorization_code )
     expire_seconds = int(response['expires_in'])
     auth_data = {}
     auth_data['refresh_token'] = response['refresh_token']
@@ -342,6 +366,23 @@ def set_oauth_configuration(config_file, secrets):
                             'access_token',
                             'refresh_token',
                             verbose=True )
+
+
+def refresh_configuration(config_file, secrets):
+    """Obtains a new token given a refresh token.
+    Expected fields in config_file include 'access_token', 'expires_in', and 'refresh_token'.
+    """
+    auth_data = {}
+    with open(config_file, 'r') as auth_json_file:
+        auth_data = json.load(auth_json_file)
+    response = oauth2.RefreshToken( secrets['client_id'], secrets['client_secret'],
+                                    auth_data['refresh_token'] )
+    expire_seconds = int(response['expires_in'])
+    auth_data['access_token'] = response['access_token']
+    auth_data['access_token_expire'] = \
+            str(datetime.datetime.now() + datetime.timedelta(seconds=expire_seconds))
+    with open(config_file, 'w') as auth_json_file:
+        json.dump(auth_data, auth_json_file)
 
 
 def test_configuration():
@@ -376,15 +417,41 @@ def test_configuration():
 
     print('Test smtp authentication:')
     retcode, retmsg = test_smtp_authentication(
+                            credentials['user_email'],
                             oauth2.GenerateOAuth2String(
                                     credentials['user_email'],
                                     credentials['access_token'],
                                     base64_encode=False ),
                             verbose=True )
+    print()
     if retcode == 235:
         print('Authentication Succeeded')
     else:
-        print('retcode (%d); Msg %s' % (retcode, retmsg))
+        print('Authentication Failed; retcode (%d): %s' % (retcode, retmsg))
+
+    if retcode == 535:
+        # Authentication credentials invalid
+        print()
+        print('Refreshing the access token...')
+        refresh_configuration(GMAIL_AUTH_FILE, secrets)
+        print('Retry smtp authentication:')
+        credentials, invalid = get_auth_parms( GMAIL_AUTH_FILE,
+                                                'user_email',
+                                                'access_token',
+                                                'refresh_token',
+                                                verbose=True )
+        retcode, retmsg = test_smtp_authentication(
+                                credentials['user_email'],
+                                oauth2.GenerateOAuth2String(
+                                        credentials['user_email'],
+                                        credentials['access_token'],
+                                        base64_encode=False ),
+                                verbose=True )
+        print()
+        if retcode == 235:
+            print('Retry Authentication Succeeded')
+        else:
+            print('Retry Authentication Failed; retcode (%d): %s' % (retcode, retmsg))
 
 
 if __name__ == '__main__':
