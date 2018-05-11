@@ -67,8 +67,10 @@ import smtplib
 import oauth2
 
 
+SCOPE = 'https://mail.google.com/'
 CLIENT_SECRET_FILE = 'client_secret.json'
-GMAIL_AUTH_FILE = 'gmail_auth_file.json'
+GMAIL_AUTH_DATA = 'gmail_auth_data.json'
+GMAIL_AUTH_TMP = 'gmail_auth_tmp.json'
 
 
 def get_secrets():
@@ -385,10 +387,146 @@ def refresh_configuration(config_file, secrets):
         json.dump(auth_data, auth_json_file)
 
 
+class DataStoreError(Exception):
+    """Base class for exceptions in DataStore class."""
+    pass
+
+
+class CredentialsError(DataStoreError):
+    """Exception raised getting credentials from DataStore."""
+    pass
+
+
+class DataStore(object):
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.client_id = None
+        self.client_secret = None
+        self.user_email = None
+        self.refresh_token = None
+        self.access_token = None
+        secrets, invalid = get_auth_parms( CLIENT_SECRET_FILE,
+                                            'client_id',
+                                            'client_secret',
+                                            verbose=self.debug )
+        if secrets is None or invalid is True:
+            raise DataStoreError("File '%s' is missing or invalid!" %
+                                    CLIENT_SECRET_FILE)
+        self.client_id = secrets['client_id']
+        self.client_secret = secrets['client_secret']
+
+    def checkin(self):
+        """Obtains user_email, access_token and refresh_token
+        from authorization json data files.
+        """
+        auth_data, invalid = get_auth_parms( GMAIL_AUTH_DATA,
+                                                'user_email',
+                                                'refresh_token',
+                                                verbose=self.debug )
+        if auth_data is None or invalid is True:
+            raise CredentialsError("File '%s' is missing or invalid!" %
+                                        GMAIL_AUTH_DATA)
+        self.user_email = auth_data['user_email']
+        self.refresh_token = auth_data['refresh_token']
+        try:
+            self.load_access_token()
+        except CredentialsError:
+            # File containing access_token is missing or invalid.
+            # Try to refresh access_token.
+            self.refresh()
+
+    def setup(self):
+        """Creates and Authorizes OAuth Tokens as credentials
+        and stores them in json formatted data files.
+
+        They are obtained:
+            user_email
+            refresh_token
+            temporary access_token
+            temporary access_token expiration time
+
+        The refresh_token can be used over and over again until it is revoked.
+        To view or revoke your OAuth tokens, visit this Google Accounts page:
+        https://security.google.com/settings/security/permissions
+        """
+        print('Creating and Authorizing Tokens as Credentials.')
+        print('To authorize token, visit this url and follow the directions:')
+        print('  %s' % oauth2.GeneratePermissionUrl(self.client_id, SCOPE))
+        authorization_code = input('Enter verification code: ')
+        response = oauth2.AuthorizeTokens( self.client_id, self.client_secret,
+                                            authorization_code )
+        auth_data = {}
+        auth_data['refresh_token'] = response['refresh_token']
+        auth_data['user_email'] = input('Enter User e-mail: ')
+        print()
+        with open(GMAIL_AUTH_DATA, 'w') as auth_json_file:
+            json.dump(auth_data, auth_json_file)
+        self.store_access_token(response['access_token'], response['expires_in'])
+        self.checkin()
+
+    def refresh(self):
+        """Obtains a new access_token given a refresh_token
+        and stores with expiration time to a json formatted data file.
+        """
+        if self.debug is True:
+            print('Refreshing the access token...')
+        response = oauth2.RefreshToken( self.client_id, self.client_secret,
+                                        self.refresh_token )
+        if self.debug is True:
+            print("Saving to '%s'\n" % GMAIL_AUTH_TMP)
+        self.store_access_token(response['access_token'], response['expires_in'])
+        self.load_access_token()
+
+    def load_access_token(self):
+        tmp_token, invalid = get_auth_parms( GMAIL_AUTH_TMP,
+                                                'access_token',
+                                                verbose=self.debug )
+        if tmp_token is None or invalid is True:
+            raise CredentialsError("File '%s' is missing or invalid!" %
+                                        GMAIL_AUTH_TMP)
+        self.access_token = tmp_token['access_token']
+
+    def store_access_token(self, token, seconds):
+        """Stores an access_token with expiration time
+        to a json formatted data file.
+        """
+        expire_seconds = int(seconds)
+        auth_data = {}
+        auth_data['access_token'] = token
+        auth_data['access_token_expire'] = \
+                    str(datetime.datetime.now() +
+                    datetime.timedelta(seconds=expire_seconds))
+        with open(GMAIL_AUTH_TMP, 'w') as auth_tmp_json_file:
+            json.dump(auth_data, auth_tmp_json_file)
+
+
 def test_configuration():
     """Tries to connect the Gmail SMTP server authenticating
     using the credentials in the GMAIL_AUTH_FILE.
     """
+    try:
+        ds = DataStore(debug=True)
+    except DataStoreError as e:
+        print('ERROR:', e)
+        print("The file containing Clent Secrets is missing or invalid.")
+        print("Register the application on Google Developers Console:")
+        print("https://console.developers.google.com")
+        print()
+        print("Go to Credentials page, download the JSON file")
+        print("and rename it as '%s'" % CLIENT_SECRET_FILE)
+        return
+
+    try:
+        ds.checkin()
+    except CredentialsError as e:
+        print('ERROR:', e)
+        print('Files containing credentials are missing or invalid.')
+        print()
+        ds.setup()
+
+    print('Done!\n')
+    return
+
     secrets, invalid = get_auth_parms( CLIENT_SECRET_FILE,
                                             'client_id',
                                             'client_secret',
