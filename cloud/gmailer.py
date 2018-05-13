@@ -60,117 +60,21 @@ from builtins import input
 
 import sys
 import json
-import datetime
+from datetime import datetime
+from datetime import timedelta
 
 import base64
 import smtplib
 import oauth2
 
 
-SCOPE = 'https://mail.google.com/'
 CLIENT_SECRET_FILE = 'client_secret.json'
 GMAIL_AUTH_DATA = 'gmail_auth_data.json'
 GMAIL_AUTH_TMP = 'gmail_auth_tmp.json'
 
-
-def get_secrets():
-    """Gets client secrets from CLIENT_SECRET_FILE.
-
-    Returns:
-        A tuple (client, invalid).
-
-        'client' is a dictionary with the fields 'id' and 'secret' get
-        from the json client secret file.
-        If the file doesn't exist, 'client' is set to None.
-
-        'invalid' is set to True if some field is missing.
-
-    # WARNING: Python methods will return NoneType expecting a tuple from them
-    and fail to return anything to fill them up, that is 'client' set to None.
-    Call this method using the [trick](https://stackoverflow.com/a/1274887).
-    """
-    client = None
-    invalid = True
-    try:
-        with open(CLIENT_SECRET_FILE, 'rt') as secret_file:
-            client_secret = json.load(secret_file)
-            client = {}
-            client['id'] = client_secret['installed']['client_id']
-            client['secret'] = client_secret['installed']['client_secret']
-            invalid = False
-    except IOError:
-        # JSON file doesn't exist: 'client' is set to None.
-        pass
-    except KeyError:
-        # Some dictionary field is missing: 'invalid' is set to True.
-        pass
-    return (client, invalid)
-
-
-def get_credentials():
-    """Gets authorization data from GMAIL_AUTH_FILE
-
-    Returns:
-        A tuple (auth, invalid).
-
-        'auth' is a dictionary with the fields 'user', 'access_token'
-        and 'refresh_token' get from the json Gmail authorization file.
-        If the file doesn't exist, 'auth' is set to None.
-
-        'invalid' is set to True if some field is missing.
-
-    # WARNING: Python methods will return NoneType expecting a tuple from them
-    and fail to return anything to fill them up, that is 'auth' set to None.
-    Call this method using the [trick](https://stackoverflow.com/a/1274887).
-    """
-    auth = None
-    invalid = False
-    try:
-        with open(GMAIL_AUTH_FILE, 'rt') as auth_file:
-            auth = {}
-            auth_dataset = json.load(auth_file)
-            try:
-                auth['user'] = auth_dataset['user_email']
-            except KeyError:
-                auth['user'] = None
-                invalid = True
-            try:
-                auth['access_token'] = auth_dataset['oauth']['access_token']
-            except KeyError:
-                auth['access_token'] = None
-                invalid = True
-            try:
-                auth['refresh_token'] = auth_dataset['oauth']['refresh_token']
-            except KeyError:
-                auth['refresh_token'] = None
-                invalid = True
-    except IOError:
-        # JSON file doesn't exist: 'auth' is set to None.
-        pass
-    except ValueError:
-        # JSON file could be decoded: 'invalid' is set to True.
-        invalid = True
-    return (auth, invalid)
-
-
-def smtp_open(user, auth_string):
-  """Opens a SMTP connection authenticating with the given auth_string.
-
-  Args:
-    user: The Gmail username (full email address)
-    auth_string: A valid OAuth2 string, not base64-encoded, as returned by
-        GenerateOAuth2String.
-
-  Returns:
-    An SMTP instance.
-  """
-  print
-  smtp_conn = smtplib.SMTP('smtp.gmail.com', 587)
-  smtp_conn.set_debuglevel(True)
-  smtp_conn.ehlo('')
-  smtp_conn.starttls()
-  smtp_conn.docmd('AUTH', 'XOAUTH2 ' + base64.b64encode(auth_string))
-  return smtp_conn
+GMAIL_SCOPE = 'https://mail.google.com/'
+GMAIL_SMTP_SERVER = 'smtp.gmail.com'
+SMTP_MSA_PORT = 587
 
 
 def send_mail(sender, to, subject, message_text_plain,
@@ -358,7 +262,7 @@ def set_oauth_configuration(config_file, secrets):
     auth_data['refresh_token'] = response['refresh_token']
     auth_data['access_token'] = response['access_token']
     auth_data['access_token_expire'] = \
-            str(datetime.datetime.now() + datetime.timedelta(seconds=expire_seconds))
+            str(datetime.now() + timedelta(seconds=expire_seconds))
     auth_data['user_email'] = input('Enter User e-mail: ')
     with open(config_file, 'w') as outfile:
         json.dump(auth_data, outfile)
@@ -382,7 +286,7 @@ def refresh_configuration(config_file, secrets):
     expire_seconds = int(response['expires_in'])
     auth_data['access_token'] = response['access_token']
     auth_data['access_token_expire'] = \
-            str(datetime.datetime.now() + datetime.timedelta(seconds=expire_seconds))
+            str(datetime.now() + timedelta(seconds=expire_seconds))
     with open(config_file, 'w') as auth_json_file:
         json.dump(auth_data, auth_json_file)
 
@@ -397,7 +301,30 @@ class CredentialsError(DataStoreError):
     pass
 
 
+class SMTPAuthError(DataStoreError):
+    """Exception raised sending SMTP AUTH Command.
+
+    Attributes:
+        ecode -- error code
+        emsg  -- explanation of the error
+        imsg  -- explanation of the intermediate response error
+    """
+    def __init__(self, ecode, emsg, imsg):
+        self.ecode = ecode
+        self.emsg = emsg
+        self.imsg = imsg
+
+    def __str__(self):
+        mesg = ''
+        if len(self.imsg) > 0:
+            mesg = 'SMTP AUTH retcode (334): {}\n'.format(self.imsg)
+        mesg = mesg + 'SMTP AUTH retcode ({}): {}'.format(self.ecode, self.emsg)
+        return mesg
+
+
 class DataStore(object):
+    DATE_TIME_FMT = '%Y-%m-%d %H:%M:%S.%f'
+
     def __init__(self, debug=False):
         self.debug = debug
         self.client_id = None
@@ -405,6 +332,7 @@ class DataStore(object):
         self.user_email = None
         self.refresh_token = None
         self.access_token = None
+        self.access_token_expire = None
         secrets, invalid = get_auth_parms( CLIENT_SECRET_FILE,
                                             'client_id',
                                             'client_secret',
@@ -435,6 +363,12 @@ class DataStore(object):
             # Try to refresh access_token.
             self.refresh()
 
+        # Check access_token expiration time
+        expire_datetime = datetime.strptime(self.access_token_expire,
+                                                self.DATE_TIME_FMT)
+        if datetime.now() > expire_datetime:
+            self.refresh()
+
     def setup(self):
         """Creates and Authorizes OAuth Tokens as credentials
         and stores them in json formatted data files.
@@ -451,7 +385,7 @@ class DataStore(object):
         """
         print('Creating and Authorizing Tokens as Credentials.')
         print('To authorize token, visit this url and follow the directions:')
-        print('  %s' % oauth2.GeneratePermissionUrl(self.client_id, SCOPE))
+        print('  %s' % oauth2.GeneratePermissionUrl(self.client_id, GMAIL_SCOPE))
         authorization_code = input('Enter verification code: ')
         response = oauth2.AuthorizeTokens( self.client_id, self.client_secret,
                                             authorization_code )
@@ -480,52 +414,127 @@ class DataStore(object):
     def load_access_token(self):
         tmp_token, invalid = get_auth_parms( GMAIL_AUTH_TMP,
                                                 'access_token',
+                                                'access_token_expire',
                                                 verbose=self.debug )
         if tmp_token is None or invalid is True:
             raise CredentialsError("File '%s' is missing or invalid!" %
                                         GMAIL_AUTH_TMP)
         self.access_token = tmp_token['access_token']
+        self.access_token_expire = tmp_token['access_token_expire']
 
     def store_access_token(self, token, seconds):
         """Stores an access_token with expiration time
         to a json formatted data file.
         """
-        expire_seconds = int(seconds)
+        expire_datetime = datetime.now() + timedelta(seconds=int(seconds))
         auth_data = {}
         auth_data['access_token'] = token
         auth_data['access_token_expire'] = \
-                    str(datetime.datetime.now() +
-                    datetime.timedelta(seconds=expire_seconds))
+                                expire_datetime.strftime(self.DATE_TIME_FMT)
         with open(GMAIL_AUTH_TMP, 'w') as auth_tmp_json_file:
             json.dump(auth_data, auth_tmp_json_file)
 
+    def smtp_connect(self):
+        """Connect to GMAIL_SMTP_SERVER.
+        Requires Simple Authentication and Security Layer (SASL) XOAUTH2 Mechanism.
+
+        Returns:
+            The instance of the SMTP connection.
+
+        SMTP Authentication Reply-Codes and their meaning according to
+        [RFC 4954](https://tools.ietf.org/html/rfc4954):
+            235	Authentication Succeeded
+            334	Text part containing the [BASE64] encoded string
+            432	A password transition is needed
+            454	Temporary authentication failure
+            500	Authentication Exchange line is too long
+            501	Malformed auth input/Syntax error
+            503	AUTH command is not permitted during a mail transaction
+            504	Unrecognized authentication type
+            530	Authentication required	Submission mode
+            534	Authentication mechanism is to weak
+            535	Authentication credentials invalid
+            538	Encryption required for requested authentication mechanism
+
+        References:
+            https://developers.google.com/gmail/imap/xoauth2-protocol
+            https://www.fehcom.de/qmail/smtpauth.html
+            https://stackoverflow.com/a/15796888
+        """
+        smtp_conn = smtplib.SMTP(GMAIL_SMTP_SERVER, SMTP_MSA_PORT)
+        if self.debug is True:
+            print
+            smtp_conn.set_debuglevel(True)
+        smtp_conn.starttls()  # starts SSL encryption
+
+        # Authenticates sending the SMTP AUTH Command:
+        #       AUTH XOAUTH2 initial_response
+        # XOAUTH2 is the SASL authentication mechanism.
+        #
+        # The SASL XOAUTH2 initial_response has the following format:
+        # base64("user=" {User} "^Aauth=Bearer " {Access Token} "^A^A")
+        # where ^A represents a Control+A (\001).
+        auth_string = oauth2.GenerateOAuth2String( self.user_email,
+                                                    self.access_token,
+                                                    base64_encode=False )
+        initial_response = base64.b64encode(auth_string.encode()).decode()
+        retcode, retmsg = smtp_conn.docmd('AUTH', 'XOAUTH2 ' + initial_response)
+        intermediate_response_msg = ''
+        if retcode == 334:
+            # Intermediate response to the AUTH command
+            # containing an error message in the format: base64({JSON-Body}).
+            # The JSON-Body contains three values: status, schemes and scope.
+            intermediate_response_msg = base64.b64decode(retmsg).decode()
+            if self.debug is True:
+                print( 'reply: retcode (334); BASE64 decoded Msg',
+                        intermediate_response_msg )
+            # The SASL protocol requires clients to send an empty message
+            # to an intermediate response.
+            retcode, retmsg = smtp_conn.docmd('')
+
+        if retcode is not 235:
+            # Authentication didn't Succeed
+            smtp_conn.quit()
+            raise SMTPAuthError(retcode, retmsg, intermediate_response_msg)
+        return smtp_conn
+
 
 def test_configuration():
-    """Tries to connect the Gmail SMTP server authenticating
-    using the credentials in the GMAIL_AUTH_FILE.
+    """Check OAuth2 credentials DataStore integrity and then
+    try to connect the Gmail SMTP server.
     """
+    print('>>>>>>>> Check DataStore integrity')
     try:
         ds = DataStore(debug=True)
     except DataStoreError as e:
-        print('ERROR:', e)
+        print('DataStore ERROR:', e)
         print("The file containing Clent Secrets is missing or invalid.")
         print("Register the application on Google Developers Console:")
         print("https://console.developers.google.com")
         print()
         print("Go to Credentials page, download the JSON file")
         print("and rename it as '%s'" % CLIENT_SECRET_FILE)
-        return
+        print()
+        return False
 
     try:
         ds.checkin()
     except CredentialsError as e:
-        print('ERROR:', e)
+        print('DataStore ERROR:', e)
         print('Files containing credentials are missing or invalid.')
         print()
         ds.setup()
 
-    print('Done!\n')
-    return
+    print('\n>>>>>>>> Testing SMTP authentication with OAuth2...')
+    try:
+        smtp_server = ds.smtp_connect()
+    except SMTPAuthError as e:
+        print('>>>>>>>> Denied!\n')
+        print('\n{}'.format(e))
+        return False
+    print('>>>>>>>> Accepted!\n')
+    smtp_server.quit()
+    return True
 
     secrets, invalid = get_auth_parms( CLIENT_SECRET_FILE,
                                             'client_id',
