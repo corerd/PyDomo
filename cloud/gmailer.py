@@ -77,22 +77,6 @@ GMAIL_SMTP_SERVER = 'smtp.gmail.com'
 SMTP_MSA_PORT = 587
 
 
-def send_mail(sender, to, subject, message_text_plain,
-                                        message_text_html='', attached_file=''):
-    """
-    See: http://naelshiab.com/tutorial-send-email-python/
-         http://stackabuse.com/how-to-send-emails-with-gmail-using-python/
-         https://stackoverflow.com/q/12827548
-
-    Goole api: https://developers.google.com/gmail/api/guides/sending
-    """
-    #TestSmtpAuthentication(options.user,
-    #    GenerateOAuth2String(options.user, options.access_token,
-    #                         base64_encode=False))
-    #smtp_conn.sendmail('from@test.com', 'to@test.com', 'cool')
-    pass
-
-
 def get_parm_value(key, dictionary):
     """Takes a dict with nested dicts, and searches all dicts for the key.
     See: https://stackoverflow.com/a/14962509
@@ -178,117 +162,6 @@ def get_auth_parms(json_file, *kparms, **kwverbose):
         print()
 
     return (parms, invalid)
-
-
-def test_smtp_authentication(user, auth_string, verbose=False):
-    """Authenticates to SMTP with the given auth_string by means of
-    Simple Authentication and Security Layer (SASL) XOAUTH2 Mechanism.
-    See: https://developers.google.com/gmail/imap/xoauth2-protocol
-         https://www.fehcom.de/qmail/smtpauth.html
-
-    Args:
-        auth_string: a valid OAuth2 string, not base64-encoded, as returned by
-                     GenerateOAuth2String.
-        verbose: if True, print debug informations
-
-    Returns:
-        2-tuple composed of a numeric reply code and the actual reply line
-        (multiline responses are joined into one long line).
-
-    SMTP Authentication Reply-Codes and their meaning according to
-    [RFC 4954](https://tools.ietf.org/html/rfc4954):
-        235	Authentication Succeeded
-        334	Text part containing the [BASE64] encoded string
-        432	A password transition is needed
-        454	Temporary authentication failure
-        500	Authentication Exchange line is too long
-        501	Malformed auth input/Syntax error
-        503	AUTH command is not permitted during a mail transaction
-        504	Unrecognized authentication type
-        530	Authentication required	Submission mode
-        534	Authentication mechanism is to weak
-        535	Authentication credentials invalid
-        538	Encryption required for requested authentication mechanism
-    """
-    smtp_conn = smtplib.SMTP('smtp.gmail.com', 587)
-    if verbose is True:
-        print
-        smtp_conn.set_debuglevel(True)
-    smtp_conn.ehlo('test')
-    smtp_conn.starttls()
-
-    # The SMTP AUTH Command:
-    # AUTH XOAUTH2 initial_response
-    #
-    # XOAUTH2 is the SASL authentication mechanism.
-    #
-    # The SASL XOAUTH2 initial_response has the following format:
-    # base64("user=" {User} "^Aauth=Bearer " {Access Token} "^A^A")
-    # where ^A represents a Control+A (\001).
-    initial_response = base64.b64encode(auth_string.encode()).decode()
-    retcode, retmsg = smtp_conn.docmd('AUTH', 'XOAUTH2 ' + initial_response)
-    if retcode == 334:
-        # Intermediate response to the AUTH command
-        # containing an error message in the format: base64({JSON-Body}).
-        # The JSON-Body contains three values: status, schemes and scope.
-        if verbose is True:
-            print( 'reply: retcode (334); BASE64 decoded Msg',
-                                base64.b64decode(retmsg).decode() )
-        # The SASL protocol requires clients to send an empty message
-        # to an intermediate response.
-        retcode, retmsg = smtp_conn.docmd('')
-
-    if retcode == 235:
-        # Authentication Succeeded
-        print()
-        print('Send email')
-        recipient_reply = smtp_conn.sendmail(user, user, 'Hello Gmail')
-        if len(recipient_reply) > 0:
-            print('Some recipient was refused:')
-            print(recipient_reply)
-
-    return retcode, retmsg
-
-
-def set_oauth_configuration(config_file, secrets):
-    scope = 'https://mail.google.com/'
-    print('To authorize token, visit this url and follow the directions:')
-    print('  %s' % oauth2.GeneratePermissionUrl(secrets['client_id'], scope))
-    authorization_code = input('Enter verification code: ')
-    response = oauth2.AuthorizeTokens( secrets['client_id'], secrets['client_secret'],
-                                        authorization_code )
-    expire_seconds = int(response['expires_in'])
-    auth_data = {}
-    auth_data['refresh_token'] = response['refresh_token']
-    auth_data['access_token'] = response['access_token']
-    auth_data['access_token_expire'] = \
-            str(datetime.now() + timedelta(seconds=expire_seconds))
-    auth_data['user_email'] = input('Enter User e-mail: ')
-    with open(config_file, 'w') as outfile:
-        json.dump(auth_data, outfile)
-    print
-    return get_auth_parms( config_file,
-                            'user_email',
-                            'access_token',
-                            'refresh_token',
-                            verbose=True )
-
-
-def refresh_configuration(config_file, secrets):
-    """Obtains a new token given a refresh token.
-    Expected fields in config_file include 'access_token', 'expires_in', and 'refresh_token'.
-    """
-    auth_data = {}
-    with open(config_file, 'r') as auth_json_file:
-        auth_data = json.load(auth_json_file)
-    response = oauth2.RefreshToken( secrets['client_id'], secrets['client_secret'],
-                                    auth_data['refresh_token'] )
-    expire_seconds = int(response['expires_in'])
-    auth_data['access_token'] = response['access_token']
-    auth_data['access_token_expire'] = \
-            str(datetime.now() + timedelta(seconds=expire_seconds))
-    with open(config_file, 'w') as auth_json_file:
-        json.dump(auth_data, auth_json_file)
 
 
 class DataStoreError(Exception):
@@ -499,6 +372,37 @@ class DataStore(object):
         return smtp_conn
 
 
+def send_mail(dst_email, subject, message_text_plain,
+                    message_text_html='', attached_file='', debug=False):
+    """Send an email via Gmail OAuth.
+    if this method does not raise an exception, then someone should get the mail.
+
+    Returns:
+        A dictionary, with one entry for each recipient that was refused.
+        Each entry contains a tuple of the SMTP error code
+        and the accompanying error message sent by the server.
+
+    References:
+        https://stackoverflow.com/q/37201250
+        http://naelshiab.com/tutorial-send-email-python/
+        http://stackabuse.com/how-to-send-emails-with-gmail-using-python/
+
+    See also Goole api: https://developers.google.com/gmail/api/guides/sending
+    """
+    ds = DataStore(debug)
+    ds.checkin()
+    if dst_email == 'me':
+        dst_email = ds.user_email
+    smtp_server = ds.smtp_connect()
+    refused = smtp_server.sendmail(ds.user_email, dst_email, message_text_plain)
+    try:
+        smtp_server.quit()
+    except Exception:
+        # Error codes and messages already catch in refused dictionary
+        pass
+    return refused
+
+
 def test_configuration():
     """Check OAuth2 credentials DataStore integrity and then
     try to connect the Gmail SMTP server.
@@ -536,70 +440,20 @@ def test_configuration():
     smtp_server.quit()
     return True
 
-    secrets, invalid = get_auth_parms( CLIENT_SECRET_FILE,
-                                            'client_id',
-                                            'client_secret',
-                                            verbose=True )
-    if secrets is None or invalid is True:
-        print("File containing Clent Secrets '%s' is missing or invalid." %
-                                                            CLIENT_SECRET_FILE)
-        print("Register the application on Google Developers Console:")
-        print("https://console.developers.google.com")
-        print()
-        print("Go to Credentials page, download the JSON file")
-        print("and rename it as '%s'" % CLIENT_SECRET_FILE)
+
+def main():
+    if test_configuration() is not True:
         return
 
-    credentials, invalid = get_auth_parms( GMAIL_AUTH_FILE,
-                                            'user_email',
-                                            'access_token',
-                                            'refresh_token',
-                                            verbose=True )
-    if credentials is None or invalid is True:
-        print('Setup configuration.')
-        credentials, invalid = set_oauth_configuration(GMAIL_AUTH_FILE, secrets)
-        if credentials is None or invalid is True:
-            print('FAIL setting up configuration.')
-            return
-
-    print('Test smtp authentication:')
-    retcode, retmsg = test_smtp_authentication(
-                            credentials['user_email'],
-                            oauth2.GenerateOAuth2String(
-                                    credentials['user_email'],
-                                    credentials['access_token'],
-                                    base64_encode=False ),
-                            verbose=True )
-    print()
-    if retcode == 235:
-        print('Authentication Succeeded')
+    print('\n>>>>>>>> Send a testing email')
+    msg = 'Hello Gmail'
+    refused = send_mail('me', 'gmailer test', msg, debug=True)
+    if len(refused) > 0:
+        print('>>>>>>>> Some recipient was refused')
+        print(refused)
     else:
-        print('Authentication Failed; retcode (%d): %s' % (retcode, retmsg))
-
-    if retcode == 535:
-        # Authentication credentials invalid
-        print()
-        print('Refreshing the access token...')
-        refresh_configuration(GMAIL_AUTH_FILE, secrets)
-        print('Retry smtp authentication:')
-        credentials, invalid = get_auth_parms( GMAIL_AUTH_FILE,
-                                                'user_email',
-                                                'access_token',
-                                                'refresh_token',
-                                                verbose=True )
-        retcode, retmsg = test_smtp_authentication(
-                                credentials['user_email'],
-                                oauth2.GenerateOAuth2String(
-                                        credentials['user_email'],
-                                        credentials['access_token'],
-                                        base64_encode=False ),
-                                verbose=True )
-        print()
-        if retcode == 235:
-            print('Retry Authentication Succeeded')
-        else:
-            print('Retry Authentication Failed; retcode (%d): %s' % (retcode, retmsg))
+        print('>>>>>>>> Done!')
 
 
 if __name__ == '__main__':
-    test_configuration()
+    main()
