@@ -60,12 +60,19 @@ from builtins import input
 
 import sys
 import json
+import ntpath
 from datetime import datetime
 from datetime import timedelta
 
 import base64
 import smtplib
 import oauth2
+
+#needed for attachment
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
+from email.MIMEBase import MIMEBase
+from email import encoders
 
 
 CLIENT_SECRET_FILE = 'client_secret.json'
@@ -372,10 +379,20 @@ class DataStore(object):
         return smtp_conn
 
 
-def send_mail(dst_email, subject, message_text_plain,
-                    message_text_html='', attached_file='', debug=False):
+def send_mail(to_addr, subject, message_text_plain,
+                    message_text_html='', attachment='', debug=False):
     """Send an email via Gmail OAuth.
-    if this method does not raise an exception, then someone should get the mail.
+    The sender's credentials are fetched up in DataStore.
+    If this method doesn't raise an exception, the recipient should get the mail.
+
+    Args:
+        to_addr: the receiver's email address string.
+                 If it is equal to 'me', it is replaced by the sender email.
+        subject: the subject of the mail.
+        message_text_plain: the message body as plain-text.
+        message_text_html: the HTML version of the message body.
+        attachment: the path to the file to be attached.
+        debug: if True, print debug informations to stderr.
 
     Returns:
         A dictionary, with one entry for each recipient that was refused.
@@ -391,10 +408,35 @@ def send_mail(dst_email, subject, message_text_plain,
     """
     ds = DataStore(debug)
     ds.checkin()
-    if dst_email == 'me':
-        dst_email = ds.user_email
+    if to_addr == 'me':
+        to_addr = ds.user_email
+
+    # Create message container
+    msg = MIMEMultipart()
+    msg['From'] = ds.user_email
+    msg['To'] = to_addr
+    msg['Subject'] = subject
+
+    # Create the body of the message
+    msg.attach(MIMEText(message_text_plain, 'plain'))
+
+    # Creating the attachement
+    if len(attachment) > 0:
+        attachment_file_name = ntpath.basename(attachment)
+        attachment_content = open(attachment, "rb")
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload((attachment_content).read())
+        encoders.encode_base64(part)
+        part.add_header( 'Content-Disposition', "attachment; filename= %s" %
+                                                        attachment_file_name )
+        msg.attach(part)
+
+    # Encode the message (the message should be in bytes)
+    raw_msg = msg.as_string()
+
+    # Send the message
     smtp_server = ds.smtp_connect()
-    refused = smtp_server.sendmail(ds.user_email, dst_email, message_text_plain)
+    refused = smtp_server.sendmail(ds.user_email, to_addr, raw_msg)
     try:
         smtp_server.quit()
     except Exception:
@@ -445,11 +487,13 @@ def main():
     if test_configuration() is not True:
         return
 
-    print('\n>>>>>>>> Send a testing email')
-    msg = 'Hello Gmail'
-    refused = send_mail('me', 'gmailer test', msg, debug=True)
+    from random import randint
+    print('\n>>>>>>>> Send a testing email with random content')
+    subject = 'gmailer test {}'.format(randint(100, 999))
+    msg = 'Hello Gmail at {}.'.format(datetime.now())
+    refused = send_mail('me', subject, msg, debug=True)
     if len(refused) > 0:
-        print('>>>>>>>> Some recipient was refused')
+        print('>>>>>>>> The recipient was refused')
         print(refused)
     else:
         print('>>>>>>>> Done!')
