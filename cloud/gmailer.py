@@ -58,6 +58,7 @@ There are 2 types of Credentials:
 from __future__ import print_function
 from builtins import input
 
+import os
 import sys
 import json
 import ntpath
@@ -82,93 +83,6 @@ GMAIL_AUTH_TMP = 'gmail_auth_tmp.json'
 GMAIL_SCOPE = 'https://mail.google.com/'
 GMAIL_SMTP_SERVER = 'smtp.gmail.com'
 SMTP_MSA_PORT = 587
-
-
-def get_parm_value(key, dictionary):
-    """Takes a dict with nested dicts, and searches all dicts for the key.
-    See: https://stackoverflow.com/a/14962509
-
-    Args:
-        key: search key.
-        dictionary: search dictionary.
-
-    Returns:
-        If the key is found, returns the associated value,
-        otherwise None.
-    """
-    if key in dictionary: return dictionary[key]
-    for k, v in dictionary.items():
-        if isinstance(v,dict):
-            return get_parm_value(key, v)
-
-
-def get_auth_parms(json_file, *kparms, **kwverbose):
-    """Gets authorization parameters from the given json_file,
-    expected fields listed in kparms.
-
-    Args:
-        json_file: JSON formatted parameters file.
-        kparms: an arbitrary number of parameters keys.
-        kwverbose: keyword argument 'verbose':
-                        if True, print debug informations to stderr.
-
-    Returns:
-        A tuple (parms, invalid).
-
-        'parms' is a dictionary of authorization parameters get from 'json_file'
-        and indexed by 'kparms' keys.
-        If the 'json_file' doesn't exist, 'parms' is set to None.
-
-        'invalid' is set to True if some field is missing.
-
-    Remark:
-        For Python 2 & 3 compatibility, defining functions with a variable number
-        of arguments, their default values must be specify as keyword arguments.
-        See: https://stackoverflow.com/a/15302038
-    """
-    # Pop 'verbose' out of keyword arguments (set default value to False).
-    verbose = kwverbose.pop('verbose', False)
-
-    parms = None
-    invalid = False
-    parms_dataset = None
-    try:
-        with open(json_file, 'r') as parms_file:
-            parms = {}
-            parms_dataset = json.load(parms_file)
-            for pkey in kparms:
-                value = get_parm_value(pkey, parms_dataset)
-                parms[pkey] = value
-                if value is None:
-                    invalid = True
-    except IOError:
-        # JSON file doesn't exist: 'parms' is set to None.
-        pass
-    except ValueError:
-        # JSON file couldn't be decoded: 'invalid' is set to True.
-        invalid = True
-
-    if verbose is True:
-        if parms is None:
-            print("'%s' doesn't exist." % json_file, file=sys.stderr)
-        else:
-            if parms_dataset is None:
-                print("'%s' couldn't be decoded as JSON file." % json_file,
-                                                            file=sys.stderr)
-            else:
-                print("JSON file '%s' decoded as:" % json_file, file=sys.stderr)
-                print( json.dumps( parms_dataset,
-                            sort_keys=True, indent=4, separators=(',', ': ') ),
-                        file=sys.stderr )
-                print("Requested fields:", file=sys.stderr)
-                print( json.dumps( parms,
-                            sort_keys=True, indent=4, separators=(',', ': ') ),
-                        file=sys.stderr )
-                if invalid is True:
-                    print('Some field is missing.', file=sys.stderr)
-        print()
-
-    return (parms, invalid)
 
 
 class DataStoreError(Exception):
@@ -213,7 +127,8 @@ class DataStore(object):
         self.refresh_token = None
         self.access_token = None
         self.access_token_expire = None
-        secrets, invalid = get_auth_parms( CLIENT_SECRET_FILE,
+        self.module_dir = os.path.dirname(os.path.abspath(__file__))
+        secrets, invalid = self.get_auth_parms( CLIENT_SECRET_FILE,
                                             'client_id',
                                             'client_secret',
                                             verbose=self.debug )
@@ -223,11 +138,97 @@ class DataStore(object):
         self.client_id = secrets['client_id']
         self.client_secret = secrets['client_secret']
 
+    def get_parm_value(self, key, dictionary):
+        """Takes a dict with nested dicts, and searches all dicts for the key.
+        See: https://stackoverflow.com/a/14962509
+
+        Args:
+            key: search key.
+            dictionary: search dictionary.
+
+        Returns:
+            If the key is found, returns the associated value,
+            otherwise None.
+        """
+        if key in dictionary: return dictionary[key]
+        for k, v in dictionary.items():
+            if isinstance(v,dict):
+                return self.get_parm_value(key, v)
+
+    def get_auth_parms(self, json_file, *kparms, **kwverbose):
+        """Gets authorization parameters from the given json_file,
+        expected fields listed in kparms.
+
+        Args:
+            json_file: JSON formatted parameters file.
+            kparms: an arbitrary number of parameters keys.
+            kwverbose: keyword argument 'verbose':
+                            if True, print debug informations to stderr.
+
+        Returns:
+            A tuple (parms, invalid).
+
+            'parms' is a dictionary of authorization parameters get from 'json_file'
+            and indexed by 'kparms' keys.
+            If the 'json_file' doesn't exist, 'parms' is set to None.
+
+            'invalid' is set to True if some field is missing.
+
+        Remark:
+            For Python 2 & 3 compatibility, defining functions with a variable number
+            of arguments, their default values must be specify as keyword arguments.
+            See: https://stackoverflow.com/a/15302038
+        """
+        # Pop 'verbose' out of keyword arguments (set default value to False).
+        verbose = kwverbose.pop('verbose', False)
+
+        parms = None
+        invalid = False
+        parms_dataset = None
+        json_file = os.path.join(self.module_dir, json_file)
+        try:
+            with open(json_file, 'r') as parms_file:
+                parms = {}
+                parms_dataset = json.load(parms_file)
+                for pkey in kparms:
+                    value = self.get_parm_value(pkey, parms_dataset)
+                    parms[pkey] = value
+                    if value is None:
+                        invalid = True
+        except IOError:
+            # JSON file doesn't exist: 'parms' is set to None.
+            pass
+        except ValueError:
+            # JSON file couldn't be decoded: 'invalid' is set to True.
+            invalid = True
+
+        if verbose is True:
+            if parms is None:
+                print("'%s' doesn't exist." % json_file, file=sys.stderr)
+            else:
+                if parms_dataset is None:
+                    print("'%s' couldn't be decoded as JSON file." % json_file,
+                                                                file=sys.stderr)
+                else:
+                    print("JSON file '%s' decoded as:" % json_file, file=sys.stderr)
+                    print( json.dumps( parms_dataset,
+                                sort_keys=True, indent=4, separators=(',', ': ') ),
+                            file=sys.stderr )
+                    print("Requested fields:", file=sys.stderr)
+                    print( json.dumps( parms,
+                                sort_keys=True, indent=4, separators=(',', ': ') ),
+                            file=sys.stderr )
+                    if invalid is True:
+                        print('Some field is missing.', file=sys.stderr)
+            print()
+
+        return (parms, invalid)
+
     def checkin(self):
         """Obtains user_email, access_token and refresh_token
         from authorization json data files.
         """
-        auth_data, invalid = get_auth_parms( GMAIL_AUTH_DATA,
+        auth_data, invalid = self.get_auth_parms( GMAIL_AUTH_DATA,
                                                 'user_email',
                                                 'refresh_token',
                                                 verbose=self.debug )
@@ -292,7 +293,7 @@ class DataStore(object):
         self.load_access_token()
 
     def load_access_token(self):
-        tmp_token, invalid = get_auth_parms( GMAIL_AUTH_TMP,
+        tmp_token, invalid = self.get_auth_parms( GMAIL_AUTH_TMP,
                                                 'access_token',
                                                 'access_token_expire',
                                                 verbose=self.debug )
