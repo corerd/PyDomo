@@ -9,6 +9,7 @@ from sys import argv as cmd_args
 import urllib2
 import json
 import time
+import sys
 
 
 def print_error(msg):
