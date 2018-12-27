@@ -38,7 +38,7 @@ from time import time, localtime, sleep, strftime
 
 from cloud.upload import upload_datastore
 from cloud.cloudcfg import ConfigDataLoad, checkDatastore
-from cloud.weather import DEFAULT_CFG_FILE_PATH as CLOUD_DEFUALT_PATH, getLocationTemp
+from cloud.weather import DEFAULT_CFG_FILE_PATH as CLOUD_DEFUALT_PATH, getLocationTemp, getLocationTempFromSvc
 from camrecorder.camsnapshot import DEFAULT_CFG_FILE_PATH as CAMRECORDER_DEFUALT_PATH, snap_shot
 
 
@@ -63,8 +63,31 @@ def print_error(msg):
     print('%s;%s' % (strftime("%Y-%m-%d %H:%M:%S"), msg), file=stderr)
 
 
+def getExternalTempFromSvcs(weatherSvc):
+    """Get the external temperature from a bunch of weather services.
+    Returns the temperature of the first available service,
+    None otherwise.
+    """
+    latitude = weatherSvc['location']['lat']
+    longitude = weatherSvc['location']['lon']
+    c_temp = None
+    for api in weatherSvc['api-list']:
+        locationTemp = getLocationTempFromSvc(api, latitude, longitude)
+        if len(locationTemp) <= 0:
+            # error: the weather service is not available
+            logging.info("ext temp;%s;-" % api['name'])
+        else:
+            svc_temp = locationTemp[1]
+            if c_temp is None:
+                c_temp = svc_temp
+            logging.info("ext temp;%s;%0.1f" % (api['name'], svc_temp))
+    if c_temp is None:
+        logging.error('no weather service is available')
+    return c_temp
+
+
 def getExternalTemp(weatherSrvCfg):
-    """ Get the external temperature from a web service.
+    """OLD Get the external temperature from Wunderground service only.
     If the web service is not available, then returns None.
     """
     locationTemp = getLocationTemp( weatherSrvCfg['wu-api-key'],
@@ -133,7 +156,8 @@ def crank(cloud_cfg, camrecorder_cfg):
     boilerstatus = ConfigDataLoad(boilerstatus_file, DEFAULT_BOILERSTATUS)
     boilerstatusChanged = False
 
-    externalTemp = getExternalTemp(cloud_cfg.data)
+    #OLD externalTemp = getExternalTemp(cloud_cfg.data)
+    externalTemp = getExternalTempFromSvcs( cloud_cfg.data['weather-svc'] )
 
     current_time = int(time())
     try:

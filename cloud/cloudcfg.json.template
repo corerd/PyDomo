@@ -14,5 +14,56 @@
     "wu-home": "https://www.wunderground.com/weather/api",
     "wu-api-key": "replace-with-your-key",
     "wu-search-country": "replace-with-your-country",
-    "wu-search-city": "replace-with-your-city"
+    "wu-search-city": "replace-with-your-city",
+
+    "_rem-weather-service-config": "Obtain Weather data for the given location",
+    "_rem-weather-service-priority": "first-highest-last-owest",
+    "weather-svc": {
+        "location": {
+            "name": "replace-with-location-name",
+            "lat": "replace-with-location-latitude-in-decimal-degrees",
+            "lon": "replace-with-location-longitude-in-decimal-degrees"
+        },
+        "api-list": [
+            {
+                "name": "replace-with-weather-api-name",
+                "key": "replace-with-weather-api-key",
+                "doc": "replace-with-weather-api-doc-url",
+                "request": "replace-with-weather-api-request-url",
+                "optional-path-to-city-name": "replace-with-path-to-item-of-weather-data",
+                "path-to-temperature-value": "replace-with-path-to-item-of-weather-data"
+            },
+            {
+                "name": "Wunderground",
+                "key": "replace-with-wunderground-api-key",
+                "doc": "https://www.wunderground.com/weather/api/d/docs",
+                "request": "http://api.wunderground.com/api/{key}/geolookup/conditions/q/{lat},{lon}.json",
+                "optional-path-to-city-name": "location/city",
+                "path-to-temperature-value": "current_observation/temp_c"
+            },
+            {
+                "name": "DarkSky",
+                "key": "replace-with-darksky-api-key",
+                "doc": "https://darksky.net/dev/docs",
+                "request": "https://api.darksky.net/forecast/{key}/{lat},{lon}?units=si&exclude=minutely,hourly,daily,alerts,flags",
+                "path-to-temperature-value": "currently/temperature"
+            },
+            {
+                "name": "Apixu",
+                "key": "replace-with-apixu-api-key",
+                "doc": "https://www.apixu.com/doc",
+                "request": "https://api.apixu.com/v1/current.json?key={key}&q={lat},{lon}",
+                "optional-path-to-city-name": "location/name",
+                "path-to-temperature-value": "current/temp_c"
+            },
+            {
+                "name": "OpenWeatherMap",
+                "key": "replace-with-openweathermap-api-key",
+                "doc": "https://openweathermap.org/current",
+                "request": "http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&APPID={key}",
+                "optional-path-to-city-name": "name",
+                "path-to-temperature-value": "main/temp"
+            }
+        ]
+    }
 }
