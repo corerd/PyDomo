@@ -20,9 +20,10 @@ def getCurrentTemp(user_api_key, latitude, longitude):
     """Get current temperature in Celsius degrees from Dark Sky API weather data.
     API doc: https://darksky.net/dev/docs
 
-    Return tuple (city, temperature), empty tuple if rised some errors.
+    Return tuple (city, temperature, nearest_station), empty tuple if rised some errors.
     """
-    request_url = 'https://api.darksky.net/forecast/%s/%s,%s?units=si&exclude=minutely,hourly,daily,alerts,flags' % \
+    #request_url = 'https://api.darksky.net/forecast/%s/%s,%s?units=si&exclude=minutely,hourly,daily,alerts,flags' % \
+    request_url = 'https://api.darksky.net/forecast/%s/%s,%s?units=si&exclude=minutely,hourly,daily,alerts' % \
                                                 ( user_api_key, latitude, longitude )
     try:
         f = urllib2.urlopen(request_url)
@@ -36,6 +37,7 @@ def getCurrentTemp(user_api_key, latitude, longitude):
         parsed_json = json.loads(json_string)
         location = parsed_json['timezone']
         temp_c = parsed_json['currently']['temperature']
+        nearest_station = parsed_json['flags']['nearest-station']
     except:
         # See: http://stackoverflow.com/a/4990739
         #print(json_string, file=sys.stderr)
@@ -47,7 +49,7 @@ def getCurrentTemp(user_api_key, latitude, longitude):
         # See: http://stackoverflow.com/a/4990739
         print_error("DSA: string convertion to float error;%s" % sys.exc_info()[0])
         return ()
-    return (location, f_temp_c)
+    return (location, f_temp_c, nearest_station)
 
 
 def main(argv):
@@ -63,6 +65,7 @@ def main(argv):
         print('Weather service is not available')
         return -1
     print('Temperature is %d* C (timezone %s)' % (locationTemp[1], locationTemp[0]))
+    print('Nearest station: %s km' % locationTemp[2])
     return 0
 
 

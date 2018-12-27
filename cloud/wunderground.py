@@ -16,11 +16,20 @@ def print_error(msg):
     print('%s;%s' % (time.strftime("%Y-%m-%d %H:%M:%S"), msg), file=sys.stderr)
 
 
+def getNearestStation(station_list):
+    lowest_distance = float('inf')
+    for station in station_list:
+        distance = float(station['distance_km'])
+        if lowest_distance > distance:
+            lowest_distance = distance
+    return len(station_list), lowest_distance
+
+
 def getCurrentTemp(user_api_key, search_lat, search_lon):
     """Get current temperature in Celsius degrees from OpenWeatherMap weather data.
     API doc: https://www.wunderground.com/weather/api/d/docs
 
-    Return tuple (city, temperature), empty tuple if rised some errors.
+    Return tuple (city, temperature, nstations, nearest_station), empty tuple if rised some errors.
     """
     request_url = 'http://api.wunderground.com/api/{key}/geolookup/conditions/q/{lat},{lon}.json'.format(
                             key=user_api_key, lat=search_lat, lon=search_lon )
@@ -47,7 +56,12 @@ def getCurrentTemp(user_api_key, search_lat, search_lon):
         # See: http://stackoverflow.com/a/4990739
         print_error("WU: string convertion to float error;%s" % sys.exc_info()[0])
         return ()
-    return (location, f_temp_c)
+    try:
+        station_summary = getNearestStation(parsed_json['location']['nearby_weather_stations']['pws']['station'])
+    except:
+        print_error("WU: nearby_weather_stations decoding error;%s" % sys.exc_info()[0])
+        return ()
+    return (location, f_temp_c, station_summary[0], station_summary[1])
 
 
 def main(argv):
@@ -62,7 +76,8 @@ def main(argv):
     if len(locationTemp) == 0:
         print('Weather service is not available')
         return -1
-    print('Temperature of "%s" is %d* C' % locationTemp)
+    print('Temperature of "%s" is %d* C' % (locationTemp[0], locationTemp[1]))
+    print('Nearby weather station on %d is at %s km' % (locationTemp[2], locationTemp[3]))
     return 0
 
 
