@@ -102,8 +102,11 @@ def getLocationTempFromSvc(svc_api, search_lat, search_lon):
 
 
 def updateLogFromSvcs(weatherSvc):
-    """Updates location temperature log in CSV format: datetime;city;temperature
-    Return value is 0 for SUCCESS, -1 otherwise
+    """Updates location temperature log from a bunch of weather services.
+    Log CSV format: datetime;api-name;city;temperature
+    If getting the temperature fron a service doesn't succeed,
+    then 'city' and 'temperature' fields are replaced by '-'.
+    Return value is always 0
     """
     latitude = weatherSvc['location']['lat']
     longitude = weatherSvc['location']['lon']
