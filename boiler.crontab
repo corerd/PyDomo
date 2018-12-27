@@ -16,3 +16,9 @@
 #
 # Boiler Ctrl
 15,45 * * * * /home/corerd/Devel/PyDomo/boilerctrl.py > /var/tmp/boilerctrlout.txt 2>&1
+#
+# Power ON today
+# 30 8 26 4 * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
+# Power OFF today
+# 0 12 26 4 * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
+
