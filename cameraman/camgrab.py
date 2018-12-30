@@ -40,8 +40,6 @@ See also: Link: http://stackoverflow.com/a/11094891
 
 from __future__ import print_function
 
-from cv2 import VideoCapture, calcHist, imdecode, imencode, IMREAD_GRAYSCALE
-from numpy import frombuffer, uint8
 from requests import get, post
 from time import sleep
 from sys import stderr
@@ -51,17 +49,40 @@ from sys import stderr
 LIGHT_THRESHOLD_DEFAULT = -1
 
 
-def gshistogram(imageAsBytearray):
-    '''Convert the bytearray image buffer to grayscale and
+def cv2_gshistogram(imageAsByteArray):
+    '''Use OpenCV tp convert the bytearray image buffer to grayscale and
     returns the histogram as a list of pixel counts,
     one for each pixel value in the source image.
 
     Since the source image has been converted to one only band (grayscale),
     there are 256 pixel counts, that is an index for each shade of grey.
     '''
-    img = frombuffer(imageAsBytearray, dtype=uint8)
+    from cv2 import calcHist, imdecode, IMREAD_GRAYSCALE
+    from numpy import frombuffer, uint8
+
+    img = frombuffer(imageAsByteArray, dtype=uint8)
     grayimg = imdecode(img, IMREAD_GRAYSCALE)
     return calcHist([grayimg],[0],None,[256],[0,256])
+
+
+def pil_gshistogram(imageAsByteArray):
+    '''Use Pillow tp convert the bytearray image buffer to grayscale and
+    returns the histogram as a list of pixel counts,
+    one for each pixel value in the source image.
+
+    Since the source image has been converted to one only band (grayscale),
+    there are 256 pixel counts, that is an index for each shade of grey.
+    '''
+    from PIL import Image
+    import StringIO
+
+    # Convert the bytes object containing a jpeg image to Pillow
+    # see: https://stackoverflow.com/a/24997383
+    img = Image.open(StringIO.StringIO(imageAsByteArray))
+
+    # Convert to greyscale and return the pixel counts list
+    grayimg = img.convert(mode='L')
+    return grayimg.histogram()
 
 
 def isDarkImage(imageAsBytearray, lightThreshold=LIGHT_THRESHOLD_DEFAULT):
@@ -73,7 +94,7 @@ def isDarkImage(imageAsBytearray, lightThreshold=LIGHT_THRESHOLD_DEFAULT):
     # the last 128 are 'light' pixels.
     See: https://stackoverflow.com/a/8659785
     '''
-    pixel_counts = gshistogram(imageAsBytearray)
+    pixel_counts = pil_gshistogram(imageAsBytearray)
     indexes = len(pixel_counts)  # should be 256 (an index for each shade of grey)
     light_pixels = sum(pixel_counts[indexes/2:])
     if lightThreshold <= LIGHT_THRESHOLD_DEFAULT:
@@ -135,6 +156,8 @@ def grabImageFromUSB(cameraNumber=0):
 
     Returns bool, video frame decoded as a JPEG bytearray.
     '''
+    from cv2 import VideoCapture, imencode
+
     # initialize the camera
     cam = VideoCapture(cameraNumber)
     retVal, rawData = cam.read()
