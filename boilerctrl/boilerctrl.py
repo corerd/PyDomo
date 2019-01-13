@@ -53,7 +53,8 @@ DEFAULT_BOILERSTATUS = \
 }
 BOILERSTATUS_FILE = 'boilerstatus.json'
 LOG_FILE = 'boilerctrl-log.txt'
-POWER_ON_DURATION = 1*60*60  # 1 hour as seconds keeping power ON
+# POWER_ON_DURATION = 1*60*60  # 1 hour as seconds keeping power ON
+POWER_ON_DURATION = 30*60  # 30 minutes keeping power ON
 POWER_OFF_INTERVAL = 5*60*60  # 4 hours as seconds between two successive starts
 EARLY_MORNING_HOURS = range(5, 8)  # that is 5, 6, 7
 ICE_ALERT_THRESHOLD = 2.0  # Celsius degrees
