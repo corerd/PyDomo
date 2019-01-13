@@ -47,6 +47,10 @@ def templot(log_file_name, plot_file_path, plot_day=None):
                 if date_time.date() != search_date:
                     continue
             svc = log_item["service"]
+            if svc == 'AVERAGE':
+                # it's possible that the log doesn't contain an average row,
+                # then the average in computed at the end
+                continue
             if svc not in tempBySvc:
                 # service doesn't exist
                 # create a new item
@@ -66,6 +70,24 @@ def templot(log_file_name, plot_file_path, plot_day=None):
     if len(tempBySvc) == 0:
         print('NOT FOUND')
         return
+
+    # Compute the average temperature reported by each service at the same timestamp
+    # assuming that the numbers of reports is the same for every service.
+
+    # Get the reports number of a generic `tempBySvc` item.
+    reports_num = len(next(iter(tempBySvc.values()))[0])
+    svc_num = len(tempBySvc.values())
+    average_t = [0] * reports_num
+    timestamps = [''] * reports_num
+    for svc_data in tempBySvc.values():
+        for idx in range(len(svc_data[0])):
+            # replace with the last service timestamp
+            timestamps[idx] = svc_data[0][idx]
+
+            # sum the average of the temperatures reported by the service
+            # at each timestamp
+            average_t[idx] = average_t[idx] + (svc_data[1][idx] / svc_num)
+    tempBySvc['AVERAGE'] = (timestamps, average_t)
 
     fig, ax = plt.subplots()
     fig.autofmt_xdate()
