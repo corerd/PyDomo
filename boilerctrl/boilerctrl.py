@@ -66,24 +66,29 @@ def print_error(msg):
 
 def getExternalTempFromSvcs(weatherSvc):
     """Get the external temperature from a bunch of weather services.
-    Returns the temperature of the first available service,
+    Returns the average temperature between the available services,
     None otherwise.
     """
     latitude = weatherSvc['location']['lat']
     longitude = weatherSvc['location']['lon']
-    c_temp = None
+    c_temp = 0
+    nsvc = 0
     for api in weatherSvc['api-list']:
         locationTemp = getLocationTempFromSvc(api, latitude, longitude)
         if len(locationTemp) <= 0:
             # error: the weather service is not available
             logging.info("ext temp;%s;-" % api['name'])
         else:
+            nsvc = nsvc + 1
             svc_temp = locationTemp[1]
-            if c_temp is None:
-                c_temp = svc_temp
+            c_temp = c_temp + svc_temp
             logging.info("ext temp;%s;%0.1f" % (api['name'], svc_temp))
-    if c_temp is None:
+    if nsvc == 0:
         logging.error('no weather service is available')
+        return None
+    # compute, log and return average temperature
+    c_temp = c_temp / nsvc
+    logging.info("ext temp;%s;%0.1f" % ('AVERAGE', c_temp))
     return c_temp
 
 
