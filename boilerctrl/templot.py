@@ -14,6 +14,10 @@ Link: https://stackoverflow.com/a/24815396
 
 How to show date and time on x axis in matplotlib
 Link: https://stackoverflow.com/a/32973263
+
+Creating graph with date and time in axis labels with matplotlib
+Link: https://matplotlib.org/gallery/text_labels_and_annotations/date.html
+      https://stackoverflow.com/a/5502162
 '''
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -96,8 +100,17 @@ def templot(log_file_name, plot_file_path, plot_day=None):
     tempBySvc['AVERAGE'] = (timestamps, average_t)
 
     fig, ax = plt.subplots()
-    fig.autofmt_xdate()
-    xfmt = mdates.DateFormatter('%Y-%m-%d %H:%M')
+
+    # format the xaxis ticks
+    if plot_day == None:
+        # plot full temperature history
+        fig.autofmt_xdate()
+        xfmt = mdates.DateFormatter('%Y-%m-%d')
+    else:
+        plt.xticks(rotation='vertical')
+        plt.subplots_adjust(bottom=.2)
+        xfmt = mdates.DateFormatter('%H:%M')
+        ax.xaxis.set_major_locator(mdates.HourLocator())
     ax.xaxis.set_major_formatter(xfmt)
 
     # plot temperature
