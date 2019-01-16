@@ -102,11 +102,17 @@ def templot(log_file_name, plot_file_path, plot_day=None):
 
     # plot temperature
     color_idx = 0
+    plot_color_set = ['green', 'brown', 'blue', 'orange']
     for svc_name in tempBySvc:
-        color_str = 'C{}'.format(color_idx)
-        color_idx = (color_idx + 1) % 9
+        if svc_name == 'AVERAGE':
+            plot_width = 3
+            plot_color = 'red'
+        else:
+            plot_width = 1  # default
+            plot_color = plot_color_set[color_idx]
+            color_idx = (color_idx + 1) % len(plot_color_set)
         ax.plot( tempBySvc[svc_name][0], tempBySvc[svc_name][1],
-                    color_str, label=svc_name )
+                    linewidth = plot_width, color=plot_color, label=svc_name )
 
     # plot a vertical line representing the activation time
     # see: https://stackoverflow.com/a/24988486
