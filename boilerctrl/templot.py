@@ -18,6 +18,7 @@ Link: https://stackoverflow.com/a/32973263
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from os import path
+from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from csv import DictReader as csv_dict
@@ -37,15 +38,20 @@ def templot(log_file_name, plot_file_path, plot_day=None):
         # Plot full temperature history
         print('Plot temperature from file {}'.format(log_file_name))
     tempBySvc = {}
+    activation_time = []
     with open(log_file_name, mode='r') as csv_file:
         csv_fields = ['date_time', 'log_type', 'desc', 'service', 'temp']
         for log_item in csv_dict(csv_file, fieldnames=csv_fields, delimiter=';'):
-            if log_item['desc'] != 'ext temp':
+            item_desc = log_item['desc']
+            if item_desc != 'ext temp' and item_desc != 'boiler goes ON':
                 continue
             date_time = datetime.strptime(log_item["date_time"], '%Y-%m-%d %H:%M:%S,%f')
             if plot_day is not None:
                 if date_time.date() != search_date:
                     continue
+            if item_desc == 'boiler goes ON':
+                activation_time.append(date_time)
+                continue
             svc = log_item["service"]
             if svc == 'AVERAGE':
                 # it's possible that the log doesn't contain an average row,
@@ -94,12 +100,20 @@ def templot(log_file_name, plot_file_path, plot_day=None):
     xfmt = mdates.DateFormatter('%Y-%m-%d %H:%M')
     ax.xaxis.set_major_formatter(xfmt)
 
+    # plot temperature
     color_idx = 0
     for svc_name in tempBySvc:
         color_str = 'C{}'.format(color_idx)
         color_idx = (color_idx + 1) % 9
         ax.plot( tempBySvc[svc_name][0], tempBySvc[svc_name][1],
                     color_str, label=svc_name )
+
+    # plot a vertical line representing the activation time
+    # see: https://stackoverflow.com/a/24988486
+    activation_label = 'SwitchOn'
+    for xc in activation_time:
+        plt.axvline(x=xc, color='magenta', label=activation_label)
+        activation_label = None  # Only one legend entry for all activation plot
 
     ax.set(ylabel='C degrees', title=plot_title)
     ax.grid()
@@ -149,5 +163,8 @@ if __name__ == "__main__":
         path.join(working_dir, plot_file_name)
     ]
     #main(argv)  # plot full temperature history
-    for plot_day in date_range_by_day('2019-01-04', 8):
-        main(argv + [plot_day])  # plot temperature of the day
+
+    # plot temperature of the last 7 days
+    starting_day = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
+    for plot_day in date_range_by_day(starting_day, 7):
+        main(argv + [plot_day])
