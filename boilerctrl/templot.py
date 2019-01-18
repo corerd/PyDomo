@@ -18,7 +18,31 @@ Link: https://stackoverflow.com/a/32973263
 Creating graph with date and time in axis labels with matplotlib
 Link: https://matplotlib.org/gallery/text_labels_and_annotations/date.html
       https://stackoverflow.com/a/5502162
+
+The MIT License (MIT)
+
+Copyright (c) 2016 Corrado Ubezio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 '''
+from __future__ import print_function
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from os import path
@@ -57,10 +81,12 @@ def templot(log_file_name, plot_file_path, plot_day=None):
                 activation_time.append(date_time)
                 continue
             svc = log_item["service"]
+            '''
             if svc == 'AVERAGE':
                 # it's possible that the log doesn't contain an average row,
                 # then the average in computed at the end
                 continue
+            '''
             if svc not in tempBySvc:
                 # service doesn't exist
                 # create a new item
@@ -78,9 +104,10 @@ def templot(log_file_name, plot_file_path, plot_day=None):
             tempBySvc[svc][1].append(current_temp)
 
     if len(tempBySvc) == 0:
-        print('NOT FOUND')
-        return
+        print('Nothing to plot in the selected period!')
+        return -1
 
+    '''
     # Compute the average temperature reported by each service at the same timestamp
     # assuming that the numbers of reports is the same for every service.
 
@@ -98,7 +125,9 @@ def templot(log_file_name, plot_file_path, plot_day=None):
             # at each timestamp
             average_t[idx] = average_t[idx] + (svc_data[1][idx] / svc_num)
     tempBySvc['AVERAGE'] = (timestamps, average_t)
+    '''
 
+    # Create the figure and the subplot for the temperatures line graph
     fig, ax = plt.subplots()
 
     # format the xaxis ticks
@@ -139,6 +168,7 @@ def templot(log_file_name, plot_file_path, plot_day=None):
     ax.legend()
     fig.savefig(plot_file_path)
     print('Temperature plot saved in', plot_file_path)
+    return 0
 
 
 def date_range_by_day(start_date, ndays):
