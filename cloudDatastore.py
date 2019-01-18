@@ -25,6 +25,7 @@
 '''Append to PYTHONPATH the path of the script from which it runs.
 Ref. http://stackoverflow.com/a/7886092
 '''
+from __future__ import print_function
 
 from cloud.cloudcfg import getDatastorePath
 
@@ -32,7 +33,7 @@ from cloud.cloudcfg import getDatastorePath
 def run():
     '''Returns status code
     '''
-    print getDatastorePath('cloud/cloudcfg.json')
+    print(getDatastorePath('cloud/cloudcfg.json'))
     return 0
 
 

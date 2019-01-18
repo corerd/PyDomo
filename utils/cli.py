@@ -25,6 +25,7 @@
 
 '''Command Line Interfaces utilities
 '''
+from __future__ import print_function
 
 
 def cfg_file_arg(prog_version, prog_usage, default_cfg_file, prog_date='2015'):
@@ -40,7 +41,7 @@ def cfg_file_arg(prog_version, prog_usage, default_cfg_file, prog_date='2015'):
 
     parser = ArgumentParser(description=prog_usage,
                              formatter_class=RawTextHelpFormatter)
-    print '%s v%s (C) %s' % (parser.prog, prog_version, prog_date)
+    print('%s v%s (C) %s' % (parser.prog, prog_version, prog_date))
 
     desc = "read the configuration from the CFG JSON file"
     parser.add_argument('-c', '--cfg', dest='cfg_file',
@@ -57,8 +58,8 @@ def cfg_file_arg(prog_version, prog_usage, default_cfg_file, prog_date='2015'):
 
 if __name__ == "__main__":
     options = cfg_file_arg('X.Y', 'Usage string', 'default_cfg_file')
-    print 'Configuration file:', options.cfg_file
+    print('Configuration file:', options.cfg_file)
     if options.debug is True:
-        print 'Debug is Enable'
+        print('Debug is Enable')
     else:
-        print 'Debug is Disable'
+        print('Debug is Disable')

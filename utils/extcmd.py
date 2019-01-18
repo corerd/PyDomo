@@ -25,6 +25,7 @@
 
 '''This module wraps subprocess allowing to run external commands.
 '''
+from __future__ import print_function
 
 from subprocess import check_output, CalledProcessError, STDOUT
 
@@ -52,20 +53,20 @@ def runcmd(cmd):
 
 
 if __name__ == "__main__":
-    print 'runcmd with normal process termination'
+    print('runcmd with normal process termination')
     exitStatus, output = runcmd("ls")
-    print exitStatus
-    print output
-    print 'runcmd when a process returns a non-zero exit status'
+    print(exitStatus)
+    print(output)
+    print('runcmd when a process returns a non-zero exit status')
     exitStatus, output = runcmd("ls non_existent_file")
-    print exitStatus
-    print output
-    print 'runcmd with non existent command'
+    print(exitStatus)
+    print(output)
+    print('runcmd with non existent command')
     exitStatus, output = runcmd('non_existent_command')
-    print exitStatus
-    print output
-    print 'runcmd reporting ShellError'
+    print(exitStatus)
+    print(output)
+    print('runcmd reporting ShellError')
     exitStatus, output = runcmd('cd some_non_existing_dir')
-    print exitStatus
-    print output
+    print(exitStatus)
+    print(output)
 

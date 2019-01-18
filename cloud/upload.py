@@ -64,7 +64,7 @@ If none given, the configuration is read from the file:
 
 
 def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
-    from dropboxsrv import dropbox_upload
+    from cloud.dropboxsrv import dropbox_upload
 
     #print 'Persistent:', persistent
     local_remove = False
@@ -103,7 +103,7 @@ def upload_datastore(local_datastore_path_name):
 
 def main():
     from utils.cli import cfg_file_arg
-    from cloudcfg import ConfigDataLoad
+    from cloud.cloudcfg import ConfigDataLoad
 
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                         level=logging.DEBUG)

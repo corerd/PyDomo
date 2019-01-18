@@ -24,6 +24,7 @@
 
 """Get configuration parameters
 """
+from __future__ import print_function
 
 import json
 import errno
@@ -87,6 +88,6 @@ def getDatastorePath(json_file):
 if __name__ == "__main__":
     datastorePath = getDatastorePath('cloudcfg.json.template')
     if len(datastorePath) <= 0:
-        print 'ERROR: datastore path not found'
+        print('ERROR: datastore path not found')
     else:
-        print datastorePath
+        print(datastorePath)
