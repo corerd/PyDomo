@@ -24,8 +24,11 @@
 
 
 import logging
-from os import remove, rmdir, walk
-from os.path import dirname, join, realpath, split
+from os import remove, rmdir, walk, makedirs
+from os.path import dirname, join, realpath, split, isdir
+from utils.cli import cfg_file_arg
+from cloud.cloudcfg import ConfigDataLoad
+from cloud.dropboxsrv import dropbox_file_xfer
 
 
 # Globals
@@ -64,18 +67,15 @@ If none given, the configuration is read from the file:
 
 
 def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
-    from cloud.dropboxsrv import dropbox_upload
-
-    #print 'Persistent:', persistent
     local_remove = False
     for filename in filelist:
         remote_dirpath = remote_datastore_name
-        (head, tail) = split(local_dirpath)
+        (_, tail) = split(local_dirpath)
         if tail != remote_datastore_name:
             remote_dirpath = join(remote_dirpath, tail)
         remote_filepath = join(remote_dirpath, filename)
         local_filepath = join(local_dirpath, filename)
-        local_remove = dropbox_upload(local_filepath, remote_filepath)
+        local_remove = dropbox_file_xfer('upload', local_filepath, remote_filepath)
         if persistent is False:
             if local_remove is True:
                 logging.info('Remove %s' % local_filepath)
@@ -84,7 +84,7 @@ def upload_files(local_dirpath, filelist, remote_datastore_name, persistent):
 
 def upload_datastore(local_datastore_path_name):
     persistent = True
-    (local_datastore_path, datastore_name) = split(local_datastore_path_name)
+    (_, datastore_name) = split(local_datastore_path_name)
     for (dirpath, dirnames, filenames) in \
                                 walk(local_datastore_path_name, topdown=True):
         # The triple for a directory is generated before
@@ -101,23 +101,51 @@ def upload_datastore(local_datastore_path_name):
     return 0
 
 
-def main():
-    from utils.cli import cfg_file_arg
-    from cloud.cloudcfg import ConfigDataLoad
+def download_datastore(local_datastore_path_name, remote_filename):
+    try: 
+        makedirs(local_datastore_path_name)
+    except OSError:
+        # prevents a duplicated attempt at creating the directory (race condition)
+        if not isdir(local_datastore_path_name):
+            logging.error('Unable to create %s directory' % local_datastore_path_name)
+            return 1
+    (_, datastore_name) = split(local_datastore_path_name)
+    local_filepath = join(local_datastore_path_name, remote_filename)
+    remote_filepath = join(datastore_name, remote_filename)
+    return dropbox_file_xfer('download', local_filepath, remote_filepath)
 
+
+def get_config(cfg_file_path):
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                         level=logging.DEBUG)
 
-    options = cfg_file_arg(VERSION, USAGE, DEFAULT_CFG_FILE_PATH)
+    options = cfg_file_arg(VERSION, USAGE, cfg_file_path)
     logging.info('Read configuration from file: %s' % options.cfg_file)
 
+    cfg_data = None
     try:
         cfg_data = ConfigDataLoad(options.cfg_file)
     except:
         logging.error('Unable to load config')
-        return 1
+    return cfg_data
 
+
+def file_download(cfg_file_path, remote_filename):
+    cfg_data = get_config(cfg_file_path)
+    if cfg_data == None:
+        return 1
+    return download_datastore(cfg_data.data['datastore'], remote_filename)
+
+
+def file_upload(cfg_file_path):
+    cfg_data = get_config(cfg_file_path)
+    if cfg_data == None:
+        return 1
     return upload_datastore(cfg_data.data['datastore'])
+
+
+def main():
+    return file_upload(DEFAULT_CFG_FILE_PATH)
 
 
 if __name__ == "__main__":

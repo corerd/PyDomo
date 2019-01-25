@@ -38,18 +38,22 @@ import logging
 from utils.extcmd import ExtCmdRunError, runcmd
 
 
-def dropbox_upload(local_file, remote_file):
-    '''Upload a local file to a remote Dropbox folder.
+def dropbox_file_xfer(command, local_file, remote_file):
+    '''upload/download local file to/from a remote Dropbox folder.
 
     Returns success
     '''
     success = False
-    uploadcmd = 'dropbox_uploader.sh upload %s %s' % (local_file, remote_file)
+    if command == 'upload':
+        xfercmd = 'dropbox_uploader.sh upload {0} {1}'.format(
+                                                    local_file, remote_file )
+    else:
+        xfercmd = 'dropbox_uploader.sh download {1} {0}'.format(
+                                                    local_file, remote_file )
     retcode = -1
     cmdoutput = ''
-    #print 'Uploading', local_file
     try:
-        retcode, cmdoutput = runcmd(uploadcmd)
+        retcode, cmdoutput = runcmd(xfercmd)
     except ExtCmdRunError as e:
         cmdoutput = 'ExtCmdRunError: {0}'.format(e)
     if retcode == 0:
