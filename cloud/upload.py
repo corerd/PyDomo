@@ -101,7 +101,7 @@ def upload_datastore(local_datastore_path_name):
     return 0
 
 
-def download_datastore(local_datastore_path_name, remote_filename):
+def download_datastore(local_datastore_path_name, filepath):
     try: 
         makedirs(local_datastore_path_name)
     except OSError:
@@ -110,9 +110,11 @@ def download_datastore(local_datastore_path_name, remote_filename):
             logging.error('Unable to create %s directory' % local_datastore_path_name)
             return 1
     (_, datastore_name) = split(local_datastore_path_name)
-    local_filepath = join(local_datastore_path_name, remote_filename)
-    remote_filepath = join(datastore_name, remote_filename)
-    return dropbox_file_xfer('download', local_filepath, remote_filepath)
+    local_filepath = join(local_datastore_path_name, filepath)
+    remote_filepath = join(datastore_name, filepath)
+    if dropbox_file_xfer('download', local_filepath, remote_filepath) is not True:
+        return 1
+    return 0
 
 
 def get_config(cfg_file_path):
@@ -130,22 +132,22 @@ def get_config(cfg_file_path):
     return cfg_data
 
 
-def file_download(cfg_file_path, remote_filename):
-    cfg_data = get_config(cfg_file_path)
+def cloud_download(cloud_cfg_file_path, remote_filename):
+    cfg_data = get_config(cloud_cfg_file_path)
     if cfg_data == None:
         return 1
     return download_datastore(cfg_data.data['datastore'], remote_filename)
 
 
-def file_upload(cfg_file_path):
-    cfg_data = get_config(cfg_file_path)
+def cloud_upload(cloud_cfg_file_path):
+    cfg_data = get_config(cloud_cfg_file_path)
     if cfg_data == None:
         return 1
     return upload_datastore(cfg_data.data['datastore'])
 
 
 def main():
-    return file_upload(DEFAULT_CFG_FILE_PATH)
+    return cloud_upload(DEFAULT_CFG_FILE_PATH)
 
 
 if __name__ == "__main__":
