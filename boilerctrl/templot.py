@@ -51,95 +51,142 @@ from datetime import datetime
 from datetime import timedelta
 from csv import DictReader as csv_dict
 
+DEFAULT_SVC = 'Wunderground'
 
-def templot(log_file_name, plot_file_path, plot_day=None):
-    plot_title = 'Temperature plot'
-    if plot_day is not None:
-        print('Plot temperature of {} from file {}'.format(plot_day, log_file_name))
-        search_date = datetime.strptime(plot_day, '%Y-%m-%d').date()
-        plot_file_path, plot_file_ext = path.splitext(plot_file_path)
-        plot_file_path = '{root}_{day}{ext}'.format( root=plot_file_path,
-                                                     ext=plot_file_ext,
-                                                     day=plot_day )
-        plot_title = plot_title + ' of {}'.format(plot_day)
+
+def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
+    print('Plot from file {}'.format(log_file_name))
+    date_start = datetime.strptime(start_from_day, '%Y-%m-%d').date()
+    if end_at_day is None:
+        date_end = date_start
+        date_range_str = date_start.strftime('%Y-%m-%d')
     else:
-        # Plot full temperature history
-        print('Plot temperature from file {}'.format(log_file_name))
+        date_end = datetime.strptime(end_at_day, '%Y-%m-%d').date()
+        date_range_str = '{}-{}'.format( date_start.strftime('%Y-%m-%d'),
+                                         date_end.strftime('%Y-%m-%d') )
+    plot_file_path, plot_file_ext = path.splitext(plot_file_path)
+    plot_file_path = '{root}_{range}{ext}'.format( root=plot_file_path,
+                                                   ext=plot_file_ext,
+                                                   range=date_range_str )
+    plot_title = 'Temperature of ' + date_range_str
+    print(plot_title)
+
     tempBySvc = {}
     activation_time = []
+    timeframe_begin = datetime(2015,1,1)
+    timeframe_avg_datetime_log = None
+    timeframe_avg = 0.0
+    timeframe_nsvc = 0
     with open(log_file_name, mode='r') as csv_file:
-        csv_fields = ['date_time', 'log_type', 'desc', 'service', 'temp']
-        for log_item in csv_dict(csv_file, fieldnames=csv_fields, delimiter=';'):
-            item_desc = log_item['desc']
+        # support two temperature log line format:
+        # in the older one the weather service name was not saved
+        csv_fields = ['date_time', 'log_type', 'desc', 'old_temp_field', 'new_temp_field']
+        for log_items in csv_dict(csv_file, fieldnames=csv_fields, delimiter=';'):
+            # check the date range
+            date_time = datetime.strptime(log_items["date_time"], '%Y-%m-%d %H:%M:%S,%f')
+            if date_time.date() < date_start:
+                continue
+            if date_time.date() > date_end:
+                break
+            
+            # search for temperature or boiler status log lines
+            item_desc = log_items['desc']
             if item_desc != 'ext temp' and item_desc != 'boiler goes ON':
                 continue
-            date_time = datetime.strptime(log_item["date_time"], '%Y-%m-%d %H:%M:%S,%f')
-            if plot_day is not None:
-                if date_time.date() != search_date:
-                    continue
+            
             if item_desc == 'boiler goes ON':
+                # get the boiler activation date time
                 activation_time.append(date_time)
                 continue
-            svc = log_item["service"]
-            '''
-            if svc == 'AVERAGE':
-                # it's possible that the log doesn't contain an average row,
-                # then the average in computed at the end
-                continue
-            '''
-            if svc not in tempBySvc:
-                # service doesn't exist
-                # create a new item
-                tempBySvc[svc] = ([], [])  # (date_time_list, temp_list)
-            if log_item["temp"] == '-':
-                # get last temperature from service list
-                try:
-                    current_temp = tempBySvc[svc][1][-1]
-                except IndexError:
-                    # the list is empty
-                    current_temp = 0.0
+            
+            # get the date time of temperature disclosed by the weather service
+            # fixing the log line format
+            if log_items['new_temp_field'] is None:
+                # old log line without weather service name
+                log_temp = log_items['old_temp_field']
+                svc = DEFAULT_SVC
             else:
-                current_temp = float(log_item["temp"])
+                log_temp = log_items['new_temp_field']
+                svc = log_items["old_temp_field"]
+            if log_temp == '-':
+                # the temperature was not disclosed
+                continue
+            current_temp = float(log_temp)
+            if svc not in tempBySvc:
+                # service doesn't exist: create a new entry
+                tempBySvc[svc] = ([], [])  # (date_time_list, temp_list)
             tempBySvc[svc][0].append(date_time)
             tempBySvc[svc][1].append(current_temp)
 
+            # compute the average time frame temperature
+            # since the earlier version of boilerctrl.py didn't
+            if svc == 'AVERAGE':
+                # average time frame temperature has been already logged:
+                # save timestamp and skip computation
+                timeframe_avg_datetime_log = date_time
+                continue  # skip average computation
+            if date_time > timeframe_begin + timedelta(minutes=2):
+                # close the time frame
+                if timeframe_nsvc > 0:
+                    timeframe_avg = round(timeframe_avg / timeframe_nsvc, 1)
+                    if timeframe_avg_datetime_log is None:
+                        # save as AVERAGE service
+                        if 'AVERAGE' not in tempBySvc:
+                            # AVERAGE service doesn't exist: create a new entry
+                            tempBySvc['AVERAGE'] = ([], [])
+                        tempBySvc['AVERAGE'][0].append(timeframe_begin)
+                        tempBySvc['AVERAGE'][1].append(timeframe_avg)
+                    else:
+                        # AVERAGE has been already logged: compare the results
+                        try:
+                            timeframe_avg_log_idx = \
+                                tempBySvc['AVERAGE'][0].index(timeframe_avg_datetime_log)
+                        except ValueError:
+                            print('AVERAGE: {} not found!'.format(timeframe_avg_datetime_log))
+                        else:
+                            timeframe_avg_log = tempBySvc['AVERAGE'][1][timeframe_avg_log_idx]
+                            timeframe_delta = round(abs(timeframe_avg-timeframe_avg_log), 1)
+                            if timeframe_delta > 0.1:
+                                print('AVERAGE: values do not match at', timeframe_avg_datetime_log)
+                                print('-- read {}, expected {}'.format(timeframe_avg_log, timeframe_avg))
+                timeframe_begin = date_time
+                timeframe_avg_datetime_log = None
+                timeframe_avg = 0.0
+                timeframe_nsvc = 0
+            timeframe_avg = timeframe_avg + current_temp
+            timeframe_nsvc = timeframe_nsvc + 1
+
+    # At the end of the scan loop, close the last time frame
+    if timeframe_nsvc > 0:
+        timeframe_avg = round(timeframe_avg / timeframe_nsvc, 1)
+        if timeframe_avg_datetime_log is None:
+            # save as AVERAGE service
+            if 'AVERAGE' not in tempBySvc:
+                # AVERAGE service doesn't exist: create a new entry
+                tempBySvc['AVERAGE'] = ([], [])
+            tempBySvc['AVERAGE'][0].append(timeframe_begin)
+            tempBySvc['AVERAGE'][1].append(timeframe_avg)
+
+
+    #######################  P L O T  #######################
     if len(tempBySvc) == 0:
         print('Nothing to plot in the selected period!')
         return -1
-
-    '''
-    # Compute the average temperature reported by each service at the same timestamp
-    # assuming that the numbers of reports is the same for every service.
-
-    # Get the reports number of a generic `tempBySvc` item.
-    reports_num = len(next(iter(tempBySvc.values()))[0])
-    svc_num = len(tempBySvc.values())
-    average_t = [0] * reports_num
-    timestamps = [''] * reports_num
-    for svc_data in tempBySvc.values():
-        for idx in range(len(svc_data[0])):
-            # replace with the last service timestamp
-            timestamps[idx] = svc_data[0][idx]
-
-            # sum the average of the temperatures reported by the service
-            # at each timestamp
-            average_t[idx] = average_t[idx] + (svc_data[1][idx] / svc_num)
-    tempBySvc['AVERAGE'] = (timestamps, average_t)
-    '''
 
     # Create the figure and the subplot for the temperatures line graph
     fig, ax = plt.subplots()
 
     # format the xaxis ticks
-    if plot_day == None:
-        # plot full temperature history
-        fig.autofmt_xdate()
-        xfmt = mdates.DateFormatter('%Y-%m-%d')
-    else:
+    if date_end == date_start:
+        # format x-axis ticks by hours of the day
         plt.xticks(rotation='vertical')
         plt.subplots_adjust(bottom=.2)
         xfmt = mdates.DateFormatter('%H:%M')
         ax.xaxis.set_major_locator(mdates.HourLocator())
+    else:
+        # auto format x-axis ticks by date
+        fig.autofmt_xdate()
+        xfmt = mdates.DateFormatter('%Y-%m-%d')
     ax.xaxis.set_major_formatter(xfmt)
 
     # plot temperature
@@ -184,19 +231,18 @@ def date_range_by_day(start_date, ndays):
 
 def main(argv):
     argc = len(argv)
-    if argc < 3 or argc > 4:
-        print('Sintax: {} <log_file_path> <plot_file_path> [<plot_day>]'.format(
-            path.basename(argv[0]) )
-        )
+    if argc < 4 or argc > 5:
+        print('Sintax: {} <log_file_path> <plot_file_path> <start_date> [<end_date>]'
+                                                .format(path.basename(argv[0])) )
         return -1
 
     # Set optional argument
     try:
-        plot_day = argv[3]
+        end_date = argv[4]
     except IndexError:
-        plot_day = None
+        end_date = None
 
-    templot(argv[1], argv[2], plot_day)
+    templot(argv[1], argv[2], argv[3], end_date)
     return 0
 
 
@@ -211,9 +257,10 @@ if __name__ == "__main__":
         path.join(working_dir, log_file_name),
         path.join(working_dir, plot_file_name)
     ]
-    #main(argv)  # plot full temperature history
+    #main(argv + ['2019-01-04', '2019-01-06'])
+    main(argv + ['2019-01-13', '2019-01-14'])
 
     # plot temperature of the last 7 days
-    starting_day = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
-    for plot_day in date_range_by_day(starting_day, 7):
-        main(argv + [plot_day])
+    #starting_day = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
+    #for plot_day in date_range_by_day(starting_day, 7):
+    #    main(argv + [plot_day])
