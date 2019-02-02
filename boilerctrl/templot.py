@@ -54,6 +54,133 @@ from csv import DictReader as csv_dict
 DEFAULT_SVC = 'Wunderground'
 
 
+class Weather_service_log:
+    def __init__(self):
+        '''Service Table: assign a tuple at each service:
+            timestamp_list
+            temperature_list
+        '''
+        self.svc_table = {}
+        self.timeframe_begin = datetime(2015,1,1)
+        self.timeframe_avg = 0.0
+        self.timeframe_nsvc = 0
+        self.timeframe_avg_logged = None
+        self.activation_time = []
+    
+    def svc_update(self, svc, timestamp, temperature):
+        if svc not in self.svc_table:
+            # service doesn't exist: create a new entry
+            self.svc_table[svc] = ([], [])  # (timestamp_list, temperature_list)
+        self.svc_table[svc][0].append(timestamp)
+        self.svc_table[svc][1].append(temperature)
+
+    def timeframe_avg_chk(self, avg_log_timestamp, avg_computed):
+        try:
+            avg_log_idx = self.svc_table['AVERAGE'][0].index(avg_log_timestamp)
+        except ValueError:
+            print('AVERAGE not found at {}!'.format(avg_log_timestamp))
+        else:
+            avg_logged = self.svc_table['AVERAGE'][1][avg_log_idx]
+            avg_delta = round( abs(avg_computed - avg_logged), 1 )
+            if avg_delta > 0.1:
+                print('AVERAGE: values do not match at',avg_log_timestamp)
+                print('-- read {}, expected {}'.format(avg_logged, avg_computed))
+
+    def timeframe_close(self, current_timestamp=None):
+        if self.timeframe_nsvc > 0:
+            self.timeframe_avg = round(self.timeframe_avg / self.timeframe_nsvc, 1)
+            if self.timeframe_avg_logged is None:
+                # AVERAGE has not been logged in the current timeframe:
+                # save as AVERAGE service
+                self.svc_update('AVERAGE',
+                            self.timeframe_begin, self.timeframe_avg )
+            else:
+                # AVERAGE has been already logged: compare the results
+                self.timeframe_avg_chk(
+                            self.timeframe_avg_logged, self.timeframe_avg )
+        if current_timestamp == None:
+            self.timeframe_begin = datetime(2015,1,1)
+        else:
+            self.timeframe_begin = current_timestamp
+        self.timeframe_avg_logged = None
+        self.timeframe_avg = 0.0
+        self.timeframe_nsvc = 0
+
+    def timeframe_update_avg(self, timestamp, temperature):
+        if timestamp > self.timeframe_begin + timedelta(minutes=2):
+            # close the time frame
+            self.timeframe_close(timestamp)
+        self.timeframe_avg = self.timeframe_avg + temperature
+        self.timeframe_nsvc = self.timeframe_nsvc + 1
+
+    def update_temperature(self, svc, timestamp, temperature):
+        self.svc_update(svc, timestamp, temperature)
+
+        # compute the average time frame temperature
+        # since the earlier version of boilerctrl.py didn't
+        if svc == 'AVERAGE':
+            # average time frame temperature has been already logged:
+            # save timestamp and exclude from computation
+            self.timeframe_avg_logged = timestamp
+            return
+        self.timeframe_update_avg(timestamp, temperature)
+
+    def update_activation(self, timestamp):
+        self.activation_time.append(timestamp)
+
+    def update_close(self):
+        self.timeframe_close()
+
+    def plot(self, daytime, fig_title, fig_file_path):
+        if len(self.svc_table) == 0:
+            return False
+
+        # Create the figure and the subplot for the temperatures line graph
+        fig, ax = plt.subplots()
+
+        # format the xaxis ticks
+        if daytime is True:
+            # format x-axis ticks by hours of the day
+            plt.xticks(rotation='vertical')
+            plt.subplots_adjust(bottom=.2)
+            xfmt = mdates.DateFormatter('%H:%M')
+            ax.xaxis.set_major_locator(mdates.HourLocator())
+        else:
+            # auto format x-axis ticks by date
+            fig.autofmt_xdate()
+            xfmt = mdates.DateFormatter('%Y-%m-%d')
+        ax.xaxis.set_major_formatter(xfmt)
+
+        # plot temperature
+        color_idx = 0
+        plot_color_set = ['green', 'brown', 'blue', 'orange']
+        for svc_name in self.svc_table:
+            if svc_name == 'AVERAGE':
+                plot_width = 3
+                plot_color = 'red'
+            else:
+                plot_width = 1  # default
+                plot_color = plot_color_set[color_idx]
+                color_idx = (color_idx + 1) % len(plot_color_set)
+            ax.plot( self.svc_table[svc_name][0], self.svc_table[svc_name][1],
+                        linewidth = plot_width, color=plot_color, label=svc_name )
+
+        # plot a vertical line representing the activation time
+        # see: https://stackoverflow.com/a/24988486
+        activation_label = 'SwitchOn'
+        for xc in self.activation_time:
+            plt.axvline(x=xc, color='magenta', label=activation_label)
+            activation_label = None  # Only one legend entry for all activation plot
+
+        ax.set(ylabel='C degrees', title=fig_title)
+        ax.grid()
+        ax.legend()
+        fig.savefig(fig_file_path)
+        print('Temperature plot saved in', fig_file_path)
+
+        return True
+
+
 def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
     print('Plot from file {}'.format(log_file_name))
     date_start = datetime.strptime(start_from_day, '%Y-%m-%d').date()
@@ -62,7 +189,7 @@ def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
         date_range_str = date_start.strftime('%Y-%m-%d')
     else:
         date_end = datetime.strptime(end_at_day, '%Y-%m-%d').date()
-        date_range_str = '{}-{}'.format( date_start.strftime('%Y-%m-%d'),
+        date_range_str = '{}_{}'.format( date_start.strftime('%Y-%m-%d'),
                                          date_end.strftime('%Y-%m-%d') )
     plot_file_path, plot_file_ext = path.splitext(plot_file_path)
     plot_file_path = '{root}_{range}{ext}'.format( root=plot_file_path,
@@ -71,12 +198,7 @@ def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
     plot_title = 'Temperature of ' + date_range_str
     print(plot_title)
 
-    tempBySvc = {}
-    activation_time = []
-    timeframe_begin = datetime(2015,1,1)
-    timeframe_avg_datetime_log = None
-    timeframe_avg = 0.0
-    timeframe_nsvc = 0
+    svc_log = Weather_service_log()
     with open(log_file_name, mode='r') as csv_file:
         # support two temperature log line format:
         # in the older one the weather service name was not saved
@@ -95,8 +217,8 @@ def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
                 continue
             
             if item_desc == 'boiler goes ON':
-                # get the boiler activation date time
-                activation_time.append(date_time)
+                # save the boiler activation date time
+                svc_log.update_activation(date_time)
                 continue
             
             # get the date time of temperature disclosed by the weather service
@@ -111,110 +233,12 @@ def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
             if log_temp == '-':
                 # the temperature was not disclosed
                 continue
-            current_temp = float(log_temp)
-            if svc not in tempBySvc:
-                # service doesn't exist: create a new entry
-                tempBySvc[svc] = ([], [])  # (date_time_list, temp_list)
-            tempBySvc[svc][0].append(date_time)
-            tempBySvc[svc][1].append(current_temp)
+            svc_log.update_temperature(svc, date_time, float(log_temp))
+    svc_log.update_close()
 
-            # compute the average time frame temperature
-            # since the earlier version of boilerctrl.py didn't
-            if svc == 'AVERAGE':
-                # average time frame temperature has been already logged:
-                # save timestamp and skip computation
-                timeframe_avg_datetime_log = date_time
-                continue  # skip average computation
-            if date_time > timeframe_begin + timedelta(minutes=2):
-                # close the time frame
-                if timeframe_nsvc > 0:
-                    timeframe_avg = round(timeframe_avg / timeframe_nsvc, 1)
-                    if timeframe_avg_datetime_log is None:
-                        # save as AVERAGE service
-                        if 'AVERAGE' not in tempBySvc:
-                            # AVERAGE service doesn't exist: create a new entry
-                            tempBySvc['AVERAGE'] = ([], [])
-                        tempBySvc['AVERAGE'][0].append(timeframe_begin)
-                        tempBySvc['AVERAGE'][1].append(timeframe_avg)
-                    else:
-                        # AVERAGE has been already logged: compare the results
-                        try:
-                            timeframe_avg_log_idx = \
-                                tempBySvc['AVERAGE'][0].index(timeframe_avg_datetime_log)
-                        except ValueError:
-                            print('AVERAGE: {} not found!'.format(timeframe_avg_datetime_log))
-                        else:
-                            timeframe_avg_log = tempBySvc['AVERAGE'][1][timeframe_avg_log_idx]
-                            timeframe_delta = round(abs(timeframe_avg-timeframe_avg_log), 1)
-                            if timeframe_delta > 0.1:
-                                print('AVERAGE: values do not match at', timeframe_avg_datetime_log)
-                                print('-- read {}, expected {}'.format(timeframe_avg_log, timeframe_avg))
-                timeframe_begin = date_time
-                timeframe_avg_datetime_log = None
-                timeframe_avg = 0.0
-                timeframe_nsvc = 0
-            timeframe_avg = timeframe_avg + current_temp
-            timeframe_nsvc = timeframe_nsvc + 1
-
-    # At the end of the scan loop, close the last time frame
-    if timeframe_nsvc > 0:
-        timeframe_avg = round(timeframe_avg / timeframe_nsvc, 1)
-        if timeframe_avg_datetime_log is None:
-            # save as AVERAGE service
-            if 'AVERAGE' not in tempBySvc:
-                # AVERAGE service doesn't exist: create a new entry
-                tempBySvc['AVERAGE'] = ([], [])
-            tempBySvc['AVERAGE'][0].append(timeframe_begin)
-            tempBySvc['AVERAGE'][1].append(timeframe_avg)
-
-
-    #######################  P L O T  #######################
-    if len(tempBySvc) == 0:
+    if svc_log.plot(date_end == date_start, plot_title, plot_file_path) is not True:
         print('Nothing to plot in the selected period!')
         return -1
-
-    # Create the figure and the subplot for the temperatures line graph
-    fig, ax = plt.subplots()
-
-    # format the xaxis ticks
-    if date_end == date_start:
-        # format x-axis ticks by hours of the day
-        plt.xticks(rotation='vertical')
-        plt.subplots_adjust(bottom=.2)
-        xfmt = mdates.DateFormatter('%H:%M')
-        ax.xaxis.set_major_locator(mdates.HourLocator())
-    else:
-        # auto format x-axis ticks by date
-        fig.autofmt_xdate()
-        xfmt = mdates.DateFormatter('%Y-%m-%d')
-    ax.xaxis.set_major_formatter(xfmt)
-
-    # plot temperature
-    color_idx = 0
-    plot_color_set = ['green', 'brown', 'blue', 'orange']
-    for svc_name in tempBySvc:
-        if svc_name == 'AVERAGE':
-            plot_width = 3
-            plot_color = 'red'
-        else:
-            plot_width = 1  # default
-            plot_color = plot_color_set[color_idx]
-            color_idx = (color_idx + 1) % len(plot_color_set)
-        ax.plot( tempBySvc[svc_name][0], tempBySvc[svc_name][1],
-                    linewidth = plot_width, color=plot_color, label=svc_name )
-
-    # plot a vertical line representing the activation time
-    # see: https://stackoverflow.com/a/24988486
-    activation_label = 'SwitchOn'
-    for xc in activation_time:
-        plt.axvline(x=xc, color='magenta', label=activation_label)
-        activation_label = None  # Only one legend entry for all activation plot
-
-    ax.set(ylabel='C degrees', title=plot_title)
-    ax.grid()
-    ax.legend()
-    fig.savefig(plot_file_path)
-    print('Temperature plot saved in', plot_file_path)
     return 0
 
 
@@ -257,10 +281,12 @@ if __name__ == "__main__":
         path.join(working_dir, log_file_name),
         path.join(working_dir, plot_file_name)
     ]
-    #main(argv + ['2019-01-04', '2019-01-06'])
+    main(argv + ['2019-01-04', '2019-01-06'])
     main(argv + ['2019-01-13', '2019-01-14'])
+    main(argv + ['2019-01-14'])
 
     # plot temperature of the last 7 days
-    #starting_day = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
-    #for plot_day in date_range_by_day(starting_day, 7):
-    #    main(argv + [plot_day])
+    today = datetime(2019,1,12)
+    from_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+    to_date = today.strftime('%Y-%m-%d')
+    main(argv + [from_date, to_date])
