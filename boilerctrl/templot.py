@@ -54,6 +54,53 @@ from csv import DictReader as csv_dict
 DEFAULT_SVC = 'Wunderground'
 
 
+def timedelta2string(elapsed):
+    '''Convert timedelta to string
+    see: https://stackoverflow.com/a/28779315
+
+    TODO convert from local timezone to UTC:
+    '''
+    seconds = elapsed.days*86400 + elapsed.seconds # drop microseconds
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    #return "{hours:02d}:{minutes:02d}:{seconds:02d}".format(**vars())
+    return "{hours:02d}:{minutes:02d}".format(**vars())
+
+
+class TimeStats:
+    def __init__(self):
+        self.lower_bound = None
+        self.upper_bound = None
+
+        self.timespan_begin = None
+        self.timespan_duration = timedelta()
+    
+    def range_update(self, timestamp):
+        if self.lower_bound == None:
+            self.lower_bound = timestamp
+        self.upper_bound = timestamp
+    
+    def timespan_open(self, timestamp):
+        self.range_update(timestamp)
+        self.timespan_begin = timestamp
+    
+    def timespan_close(self, timestamp=None):
+        self.range_update(timestamp)
+        if timestamp is None:
+            # force timespan_close:
+            # require timespan open
+            if self.timespan_begin is None:
+                return
+            timestamp = self.upper_bound
+        if self.timespan_begin is None:
+            self.timespan_begin = self.upper_bound
+        self.timespan_duration += timestamp - self.timespan_begin
+        self.timespan_begin = None
+
+    def timespan_gets(self):
+        return timedelta2string(self.timespan_duration)
+
+
 class Weather_service_log:
     def __init__(self):
         '''Service Table: assign a tuple at each service:
@@ -61,13 +108,24 @@ class Weather_service_log:
             temperature_list
         '''
         self.svc_table = {}
+
+        self.datetime_stats = TimeStats()
+        self.activation_timestamp = []
+
         self.timeframe_begin = datetime(2015,1,1)
         self.timeframe_avg = 0.0
         self.timeframe_nsvc = 0
         self.timeframe_avg_logged = None
-        self.activation_time = []
     
+    def activation_start(self, timestamp):
+        self.datetime_stats.timespan_open(timestamp)
+        self.activation_timestamp.append(timestamp)
+
+    def activation_stop(self, timestamp):
+        self.datetime_stats.timespan_close(timestamp)
+
     def svc_update(self, svc, timestamp, temperature):
+        self.datetime_stats.range_update(timestamp)
         if svc not in self.svc_table:
             # service doesn't exist: create a new entry
             self.svc_table[svc] = ([], [])  # (timestamp_list, temperature_list)
@@ -125,10 +183,8 @@ class Weather_service_log:
             return
         self.timeframe_update_avg(timestamp, temperature)
 
-    def update_activation(self, timestamp):
-        self.activation_time.append(timestamp)
-
     def update_close(self):
+        self.datetime_stats.timespan_close()
         self.timeframe_close()
 
     def plot(self, daytime, fig_title, fig_file_path):
@@ -159,22 +215,28 @@ class Weather_service_log:
                 plot_width = 3
                 plot_color = 'red'
             else:
+                if daytime is not True:
+                    # plot only the AVERAGE
+                    continue
                 plot_width = 1  # default
                 plot_color = plot_color_set[color_idx]
                 color_idx = (color_idx + 1) % len(plot_color_set)
             ax.plot( self.svc_table[svc_name][0], self.svc_table[svc_name][1],
                         linewidth = plot_width, color=plot_color, label=svc_name )
 
-        # plot a vertical line representing the activation time
-        # see: https://stackoverflow.com/a/24988486
-        activation_label = 'SwitchOn'
-        for xc in self.activation_time:
-            plt.axvline(x=xc, color='magenta', label=activation_label)
-            activation_label = None  # Only one legend entry for all activation plot
+        if daytime is True:
+            # plot a vertical line representing the activation time
+            # see: https://stackoverflow.com/a/24988486
+            activation_label = 'SwitchOn'
+            for xc in self.activation_timestamp:
+                plt.axvline(x=xc, color='magenta', label=activation_label)
+                activation_label = None  # Only one legend entry for all activation plot
 
-        ax.set(ylabel='C degrees', title=fig_title)
+        ax.set(ylabel='C degrees',
+            title='Switch ON duration: ' + self.datetime_stats.timespan_gets())
         ax.grid()
         ax.legend()
+        fig.suptitle(fig_title, fontsize=12)
         fig.savefig(fig_file_path)
         print('Temperature plot saved in', fig_file_path)
 
@@ -213,14 +275,16 @@ def templot(log_file_name, plot_file_path, start_from_day, end_at_day=None):
             
             # search for temperature or boiler status log lines
             item_desc = log_items['desc']
-            if item_desc != 'ext temp' and item_desc != 'boiler goes ON':
+            if item_desc != 'ext temp' and 'boiler goes ' not in item_desc:
                 continue
-            
             if item_desc == 'boiler goes ON':
                 # save the boiler activation date time
-                svc_log.update_activation(date_time)
+                svc_log.activation_start(date_time)
                 continue
-            
+            if item_desc == 'boiler goes OFF':
+                svc_log.activation_stop(date_time)
+                continue
+
             # get the date time of temperature disclosed by the weather service
             # fixing the log line format
             if log_items['new_temp_field'] is None:
@@ -281,12 +345,14 @@ if __name__ == "__main__":
         path.join(working_dir, log_file_name),
         path.join(working_dir, plot_file_name)
     ]
+    main(argv + ['2019-01-14'])
     main(argv + ['2019-01-04', '2019-01-06'])
     main(argv + ['2019-01-13', '2019-01-14'])
-    main(argv + ['2019-01-14'])
+    main(argv + ['2019-01-13'])
 
     # plot temperature of the last 7 days
     today = datetime(2019,1,12)
     from_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
     to_date = today.strftime('%Y-%m-%d')
     main(argv + [from_date, to_date])
+ 
