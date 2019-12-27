@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2015 Corrado Ubezio
+# Copyright (c) 2019 Corrado Ubezio
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,36 +25,15 @@
 '''Append to PYTHONPATH the path of the script from which it runs.
 Ref. http://stackoverflow.com/a/7886092
 '''
-from __future__ import print_function
 
-import sys
-from random import randint
-from datetime import datetime
-from cloud.gmailer import send_mail
+from googleapis.gmailapi import main
 
 
-def main(argv):
-    if len(argv) < 2 or len(argv) > 3:
-        print('USAGE; emailsend_test <dest-address> [attachment]')
-        return
-    dest_address = argv[1]
-    if len(argv) == 3:
-        attached = argv[2]
-    else:
-        attached = ''
-
-    print('>>> Send a testing email with random content to', dest_address)
-    if len(attached) > 0:
-        print('>>> attaching the file', attached)
-    subject = 'Send email test {}'.format(randint(100, 999))
-    msg = 'Hello Gmail at {}.'.format(datetime.now())
-    refused = send_mail(dest_address, subject, msg, attachment=attached)
-    if len(refused) > 0:
-        print('>>>>>>>> The recipient was refused')
-        print(refused)
-    else:
-        print('>>>>>>>> Done!')
+def run():
+    '''Returns status code
+    '''
+    return main()
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    exit(run())

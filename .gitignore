@@ -2,6 +2,7 @@
 # such as configuration data.
 *.nja
 *.json
+*.pickle
 local/
 
 # Byte-compiled / optimized / DLL files
