@@ -10,6 +10,8 @@
 
     "datastore": "<path-to-recorded-data>",
 
+    "alert-receiver-address": "<email_address_of_the_receiver>",
+
     "_rem-weather-underground-api": "Weather api designed for developers",
     "wu-home": "https://www.wunderground.com/weather/api",
     "wu-api-key": "replace-with-your-key",
