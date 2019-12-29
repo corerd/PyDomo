@@ -26,7 +26,7 @@
 Ref. http://stackoverflow.com/a/7886092
 '''
 
-from googleapis.gmailapi import main
+from cloud.googleapis.gmailapi import main
 
 
 def run():
