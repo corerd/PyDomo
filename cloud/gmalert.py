@@ -36,7 +36,7 @@ from apiclient import errors
 from traceback import format_exc
 
 from cloud.cloudcfg import ConfigDataLoad, checkDatastore
-from googleapis.gmailapi import gmSend
+from cloud.googleapis.gmailapi import gmSend
 
 
 # Globals
