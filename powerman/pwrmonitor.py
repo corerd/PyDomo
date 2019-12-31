@@ -25,30 +25,29 @@
 from __future__ import print_function
 
 import logging
-import time
 import json
 import inspect
 from sys import stderr
 from time import strftime
-from os import mkdir
-from os.path import dirname, join, isdir, realpath
+from datetime import datetime
+from os.path import dirname, join
 
 from apiclient import errors
 from traceback import format_exc
 
 from powerman.upower import UPowerManager
-from cloud.cloudcfg import ConfigDataLoad, checkDatastore
+from cloud.upload import upload_datastore
 from cloud.googleapis.gmailapi import gmSend
+from cloud.cloudcfg import ConfigDataLoad, checkDatastore
 
 # Globals
 VERSION = '1.0'
 VERSION_DATE = '2019'
+
+# Claud configuration file get from cloud package
 DEFAULT_CFG_FILE = 'cloudcfg.json'
 DEFAULT_CFG_FILE_PATH = join(dirname(inspect.getfile(ConfigDataLoad)),
                                 DEFAULT_CFG_FILE)
-# TODO what about getfile() in Python 3 ?
-
-LOG_FILE = 'pwrmonitor-log.txt'
 
 # Power supply type IDs
 PSU_UNKNOWN = -1
@@ -59,6 +58,8 @@ PSU_BATTERY = 1
 PSU_AC_DESC      = "AC_ADAPTER"
 PSU_BATTERY_DESC = "BATTERY"
 
+# Files keeping power supply state
+LOG_FILE = 'pwrmonitor-log.txt'
 PSU_TYPE_FILE = 'pwrmonitor.json'
 DEFAULT_PSU_CFG = \
 {
@@ -130,18 +131,18 @@ def psu_type_getFromDevice():
     return PSU_AC
 
 
-def alert_send(to, subject, message_text):
+def alert_send(to, message_text):
     """Send an alert email message from the user's account
     to the email address get from the configuration file.
 
     Args:
         to: Email address of the receiver.
-        subject: The subject of the email message.
-        message_text: The text of the email message.
+        message_text: The text of the alert message.
 
     Returns:
         Success.
     """
+    subject = 'PSU Alert at ' + datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     success = -1
     try:
         gmSend(to, subject, message_text)
@@ -206,7 +207,8 @@ def main():
         if psu_type_current == PSU_BATTERY:
             psu_switch2battery = 1
             logging.debug('send alert')
-            #alert_send(receiver_address, 'subject', 'message')
+            alert_send(receiver_address, 'AC power adapter has been unplugged.')
+            upload_datastore(cloud_cfg.data['datastore'])
 
     return psu_switch2battery
 
