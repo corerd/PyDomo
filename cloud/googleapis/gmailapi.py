@@ -120,9 +120,13 @@ OAUTH_CREDENTIAL_NAME = 'credentials.json'
 
 CREDENTIAL_LOSS_MESSAGE = """
 Your OAuth 2.0 credential file named {} is missing or invalid.
-Open the tutorial Gmail Python API Quickstart
+The first time, open the tutorial Gmail Python API Quickstart
     https://developers.google.com/gmail/api/quickstart/python
 and go to the ENABLE THE GMAIL API wizard.
+
+If the Gmail API has been already turned on, go to your Google API Console
+    https://console.cloud.google.com/apis/dashboard
+open Credentials tab and download OAuth client configuration.
 """
 
 # Locate the client secret files in module directory
