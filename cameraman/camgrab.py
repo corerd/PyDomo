@@ -191,8 +191,9 @@ def grabImage(cameraDesc):
 
 def imageCapture(cameraDesc, imageFileName):
     '''Saves a snapshot from a camera to the specified file.
-    If camera has night vision capability, check the quality of the image
-    and shot again with IrLeds ON if it is too dark.
+    If camera has night vision capability, use IrLeds; and if threshold is given
+    first take am image with night vision off and if it is too dark compared
+    to the threshold then shot again with IrLeds ON.
 
     The camera type (usb or ip) is get from the descriptor:
     cameraDesc = {
@@ -209,50 +210,73 @@ def imageCapture(cameraDesc, imageFileName):
 
     Returns bool
     '''
-    retVal, jpgImage = grabImage(cameraDesc)
-    if not retVal:
+    applyNightVision = False
+
+    # Check night vision capability
+    try:
+         irLed_ctrl_url = cameraDesc['optional-irled']['url-ctrl']
+    except KeyError:
+        irLed_ctrl_url = None
+
+    if irLed_ctrl_url:
+        # the camera has night vision capability:
+        applyNightVision = True
+        try:
+            username = cameraDesc['optional-auth']['user-name']
+            password = cameraDesc['optional-auth']['password']
+        except KeyError:
+            username = ''
+            password = ''
+
+        # check threshold capability
+        try:
+            threshold = cameraDesc['optional-irled']['opt-light-threshold']
+        except KeyError:
+            threshold = None
+        if threshold:
+            try:
+                threshold = int(threshold)
+            except ValueError:
+                threshold = LIGHT_THRESHOLD_DEFAULT
+
+        if threshold:
+            # first take am image with night vision off
+            grabOk, jpgImage = grabImage(cameraDesc)
+            if not grabOk:
+                # grabImage returns errors
+                return False
+            # and then compare with threshold
+            if isDarkImage(jpgImage, threshold):
+                applyNightVision = True
+                print('Recover a Dark Image', file=stderr)
+            else:
+                applyNightVision = False
+    
+    # switch IrLeds ON
+    if applyNightVision:
+        irLedOk = lightsIP(irLed_ctrl_url, username, password, True)
+        if irLedOk is False:
+            # TODO check the result
+            print('FAIL to switch IrLeds ON', file=stderr)
+        else:
+            # wait for IrLeds settling
+            sleep(4)
+
+    # take the image
+    grabOk, jpgImage = grabImage(cameraDesc)
+
+    # switch IrLeds OFF
+    if applyNightVision:
+        irLedOk = lightsIP(irLed_ctrl_url, username, password, False)
+        if irLedOk is False:
+            # TODO check the result
+            print('FAIL to switch IrLeds OFF', file=stderr)
+
+    if not grabOk:
         # grabImage returns errors
         return False
 
-    '''If camera has night vision capability, check the quality of the image
-    and shot again with IrLeds ON if it is too dark'''
-    try:
-         irLed_ctrl_url = cameraDesc['optional-irled']['url-ctrl']
-         capabilityNightVision = True
-    except KeyError:
-        capabilityNightVision = False
-    if capabilityNightVision is True:
-        try:
-            threshold = cameraDesc['optional-irled']['opt-light-threshold']
-            threshold = int(threshold)
-        except (KeyError, ValueError):
-            threshold = LIGHT_THRESHOLD_DEFAULT
-        print('NightVision capability is True; threshold=%d' % threshold, file=stderr)
-        if isDarkImage(jpgImage, threshold):
-            try:
-                username = cameraDesc['optional-auth']['user-name']
-                password = cameraDesc['optional-auth']['password']
-            except KeyError:
-                username = ''
-                password = ''
-            print('Recover a Dark Image', file=stderr)
-            #print('Connect <%s>:<%s>@%s' % (username, password, irLed_ctrl_url), file=stderr)
-            irLedOk = lightsIP(irLed_ctrl_url, username, password, True)
-            if irLedOk is False:
-                # TODO check the result
-                print('FAIL to switch IrLeds ON', file=stderr)
-            else:
-                # wait for IrLeds settling
-                sleep(4)
-            grabOk, jpgImage = grabImage(cameraDesc)
-            irLedOk = lightsIP(irLed_ctrl_url, username, password, False)
-            if irLedOk is False:
-                # TODO check the result
-                print('FAIL to switch IrLeds OFF', file=stderr)
-            if grabOk is False:
-                # grabImage returns errors
-                return False
-
+    # save the image
     try:
         with open(imageFileName, 'wb') as f:
             f.write(jpgImage)
