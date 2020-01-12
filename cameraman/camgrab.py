@@ -277,6 +277,7 @@ def imageCapture(cameraDesc, imageFileName):
         return False
 
     # save the image
+    retVal = True
     try:
         with open(imageFileName, 'wb') as f:
             f.write(jpgImage)
