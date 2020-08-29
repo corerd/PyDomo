@@ -5,10 +5,11 @@
 #
 # m h  dom mon dow   command
 ################################################################################
-# Power ON
-# 5 5 * * * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
-# Power OFF
-# 5 6 * * * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
+# Power ON today
+# 30 10 11 1 * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
+# Power OFF today
+# 0 11 11 1 * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
+#
 # Power ON
 # 5 21 * * * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
 # Power OFF
@@ -17,8 +18,5 @@
 # Boiler Ctrl
 15,45 * * * * /home/corerd/Devel/PyDomo/boilerctrl.py > /var/tmp/boilerctrlout.txt 2>&1
 #
-# Power ON today
-# 30 8 26 4 * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
-# Power OFF today
-# 0 12 26 4 * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
-
+# Power Supply Monitor
+*/10 * * * * /home/corerd/Devel/PyDomo/pwrmonitor-launch.py > /var/tmp/pwrmonitorout.txt 2>&1
