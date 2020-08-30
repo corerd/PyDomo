@@ -1,9 +1,19 @@
 # Gmail API requests in Python
 
-`gmailapi.py` is a client front-end library script to make requests
-to the Gmail Google API.
+Google provides the [Gmail Python Quickstart](
+https://developers.google.com/gmail/api/quickstart/python) tutorial where
+you can find the `quickstart.py` sample application.
 
-Gmail API relies upon [OAuth 2.0 protocol](http://tools.ietf.org/html/rfc6749)
+The `gmailapi.py` script derives from `quickstart.py`.
+It is both a client front-end library and a command-line application.
+
+As a standalone command-line application, the `gmailapi.py` script is intended
+to checkout **OAuth 2.0 tokens** from Google Authorization Server.
+
+The `gmailapi.py` script also exports utility functions that can be called
+by any client front-end to make requests to **Gmail API**.
+
+**Gmail API** relies upon [OAuth 2.0 protocol](http://tools.ietf.org/html/rfc6749)
 for authentication and authorization.
 
 The description of the OAuth 2.0 authorization scenarios that Google supports
@@ -20,11 +30,8 @@ To enable Gmail API you have to create a new **Cloud Platform project** in
 and enable the Gmail API in
 [Google API Console](https://console.cloud.google.com/apis/dashboard).
 
-Then `gmailapi.py` script requests an OAuth 2.0 **access token** from the
-Google Authorization Server, extracts a token from the response,
-and sends the token to the Gmail API that you want to access.
-
-Here are the steps required to allow the script to send Gmail API requests.
+Here are the steps required to allow the `gmailapi.py` script to send Gmail API
+requests.
 
 
 ### 1. Obtain OAuth 2.0 credentials from the Google Cloud Console
@@ -53,8 +60,9 @@ the [Google API Console](https://console.cloud.google.com/apis/dashboard).
 
 ### 2. Install the Google Client Library
 
+Run the following command to install the library using pip:
 ```
-pip install -r requirements.txt
+pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
 ```
 
 
@@ -79,16 +87,14 @@ If the script needs access to a Gmail API beyond the lifetime of its access toke
 it will proceed automatically requesting a new one from the Google Authorization
 Server by means of the **refresh token**.
 
+[Refresh token expiration](
+https://developers.google.com/identity/protocols/oauth2#expiration) deals about
+the possibility that a granted **refresh token** stop working, that is:
 
-## Troubleshooting
-
-The OAuth consent screen that is presented to the you may show the warning
-**This app isn't verified** if it is requesting scopes that provide access to
-sensitive user data. These applications must eventually go through the
-[verification process](https://support.google.com/cloud/answer/7454865)
-to remove that warning and other limitations.
-During the development phase you can continue past this warning by clicking
-**Advanced > Go to {Project Name} (unsafe)**.
+- The user has revoked your app's access.
+- The refresh token has not been used for six months.
+- The user changed passwords and the refresh token contains Gmail scopes.
+- The user account has exceeded a maximum number of granted (live) refresh tokens.
 
 
 ## The gmailapi.py library script
@@ -105,6 +111,8 @@ The script exports the following functions:
 Before any Gmail API request, the script checks out the **OAuth 2.0 tokens** and,
 if necessary, automatically obtains or refreshes them from Google Authorization
 Server.
+Then the script extracts a token from the response, and sends this token
+to the Gmail API that you want to access.
 
 
 ### The command-line application
@@ -129,6 +137,47 @@ to obtain a new set of tokens, storing them to the `token.pickle` file.
 
 Python 2,7 and 3.6 are fully supported and tested.
 The `gmailapi.py` script may work on other versions of 3 though not tested.
+
+
+## Troubleshooting
+
+This [section](
+https://developers.google.com/gmail/api/quickstart/python#troubleshooting)
+in Google's **Gmail Python Quickstart** tutorial describes some issues
+that you may encounter while attempting to run `gmailapi.py`.
+
+The most common are dealt in the following.
+
+
+### This app isn't verified
+
+The OAuth consent screen that is presented to the you may show the warning
+**This app isn't verified** if it is requesting scopes that provide access to
+sensitive user data. These applications must eventually go through the
+[verification process](https://support.google.com/cloud/answer/7454865)
+to remove that warning and other limitations.
+During the development phase you can continue past this warning by clicking
+**Advanced > Go to {Project Name} (unsafe)**.
+
+
+### OAuth invalid_grant
+
+The [RFC 6749 OAuth 2.0](https://tools.ietf.org/html/rfc6749#section-5.2) spec
+says about it:
+```
+invalid_grant
+      The provided authorization grant (e.g., authorization
+      code, resource owner credentials) or refresh token is
+      invalid, expired, revoked, does not match the redirection
+      URI used in the authorization request, or was issued to
+      another client.
+```
+In [this](
+https://blog.timekit.io/google-oauth-invalid-grant-nightmare-and-how-to-fix-it-9f4efaf1da35)
+Timekit Blog post you can find a list of what might be wrong.
+
+One possible solution is to delete the `token.pickle` file and obtain a new
+**OAuth 2.0 tokens** set from the Google Authorization Server.
 
 
 # Demo

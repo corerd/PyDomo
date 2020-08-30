@@ -113,6 +113,7 @@ from email.header import Header
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 
 
 OAUTH_TOKEN_NAME = 'token.pickle'
@@ -177,7 +178,11 @@ def GetAuthTokens(modeIsInteractive=False):
     This function returns None in all other cases where it fails to retrieve
     OAuth 2.0 tokens.
 
+
     TROUBLESHOOTING
+
+    This app isn't verified
+
     At the beginning of the user consent process, the OAuth consent screen
     may show the warning **This app isn't verified** because it is requesting
     scopes that provide access to sensitive user data.
@@ -187,7 +192,16 @@ def GetAuthTokens(modeIsInteractive=False):
     During the development phase you can continue past this warning by clicking
     **Advanced > Go to {Project Name} (unsafe)**.
 
+    OAuth invalid_grant
+
+    Sometimes the OAuth 2.0 Refresh Token request raises the invalid_grant
+    exception.
+    One possible solution is to delete the `token.pickle` file and obtain
+    a new OAuth 2.0 tokens set from the Google Authorization Server.
+
+
     PYTHON 2 vs 3 COMPATIBILITY
+
     The `token.pickle` file is saved as pickled data.
     Pickle uses different protocols to convert your data to a binary stream.
     - In Python 2 there are 3 different protocols (0, 1, 2) and the
@@ -196,6 +210,7 @@ def GetAuthTokens(modeIsInteractive=False):
       default is 3.
     Therefore use protocol number 2 even in Python 3 to comply with Python 2.
     See: https://stackoverflow.com/a/25843743
+
 
     CREDITS
     This function derives from the tutorial:
@@ -219,7 +234,17 @@ def GetAuthTokens(modeIsInteractive=False):
         if auth_tokens and auth_tokens.expired and auth_tokens.refresh_token:
             # if tokens are available but access_token has expired
             # then obtain a new access_token by means of the refresh token
-            auth_tokens.refresh(Request())
+            try:
+                # a granted refresh token might no longer work
+                auth_tokens.refresh(Request())
+            except RefreshError as e:
+                if modeIsInteractive:
+                    if 'invalid_grant' in e.args[0]:
+                        print('invalid_grant\n'
+                        '\tRefresh token is invalid, expired or revoked\n'
+                        'See: https://developers.google.com/identity/protocols/oauth2#expiration')
+                        return None
+                raise
         else:
             # If there are no tokens available and the mode is interactive
             # then open the OAuth consent screen in default browser and
