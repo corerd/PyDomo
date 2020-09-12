@@ -1,8 +1,10 @@
 ################################################################################
 #                           SCHEDULE BOILER ON/OFF
+#                      Using Python system-site-packages
 #
-# Custom scripts and executables must be put in /usr/bin/
-#
+# User scripts and executables must be put in /usr/local/bin/
+PATH = /usr/local/bin:/usr/bin:/bin
+
 # m h  dom mon dow   command
 ################################################################################
 # Power ON today
