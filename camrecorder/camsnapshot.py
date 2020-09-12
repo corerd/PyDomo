@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from __future__ import print_function
 
 import logging
 from os.path import dirname, join, realpath
@@ -54,11 +55,11 @@ def mkdir(dir_name, verbose=False):
         try:
             info_message = 'Create directory %s' % dir_name
             if verbose is True:
-                print info_message
+                print(info_message)
             else:
                 logging.info(info_message)
             # Creates the directory in a secure manner
-            mkdir(dir_name, 0700)
+            mkdir(dir_name, 0o700)
         except OSError:
             if not path.isdir(dir_name):
                 # If the directory doesn't exist,
@@ -93,7 +94,7 @@ def snap_shot(cfg):
         return 1
 
     nsnaps = 0
-    print 'Taking snap shots...'
+    print('Taking snap shots...')
     cameraIndex = 0
     for camera in cfg.data['cameras-list']:
         pictureFileFullName = '{0:s}/S_{1:%y%m%d_%H%M%S}_{2:02d}.jpg'\
@@ -106,27 +107,27 @@ def snap_shot(cfg):
             nsnaps = nsnaps + 1
             logging.info('Save image %s' % pictureFileFullName)
         cameraIndex = cameraIndex + 1
-    print 'Total %d snap shots' % nsnaps
+    print('Total %d snap shots' % nsnaps)
     return 0
 
 
 def main():
     from utils.cli import cfg_file_arg
-    from camrecordercfg import ConfigDataLoad
+    from camrecorder.camrecordercfg import ConfigDataLoad
 
     options = cfg_file_arg(VERSION, USAGE, DEFAULT_CFG_FILE_PATH)
-    print 'Read configuration from file:', options.cfg_file
+    print('Read configuration from file:', options.cfg_file)
 
     try:
         cfg_data = ConfigDataLoad(options.cfg_file)
     except:
-        print 'Unable to load config'
+        print('Unable to load config')
         return 1
 
     # Make the container warking directory
     warking_dir = cfg_data.data['datastore']
     if mkdir(warking_dir, verbose=True) is False:
-        print 'Error create directory', warking_dir
+        print('Error create directory', warking_dir)
         return 1
 
     logging.basicConfig(filename=warking_dir + '/' + LOG_FILE_NAME,

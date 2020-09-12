@@ -25,6 +25,8 @@
 """Get configuration parameters
 """
 
+from __future__ import print_function
+
 import json
 
 
@@ -39,13 +41,13 @@ if __name__ == "__main__":
     json_file = 'camrecordercfg.json.template'
     cfg = ConfigDataLoad(json_file)
 
-    print cfg.data['datastore']
+    print(cfg.data['datastore'])
     for camera in cfg.data['cameras-list']:
-        print camera['source']
+        print(camera['source'])
         try:
-            print camera['optional-auth']['user-name']
-            print camera['optional-auth']['password']
+            print(camera['optional-auth']['user-name'])
+            print(camera['optional-auth']['password'])
         except KeyError:
             # auth is not given
             pass
-    print 'Done'
+    print('Done')
