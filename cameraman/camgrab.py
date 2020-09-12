@@ -159,8 +159,10 @@ def grabImageFromUSB(cameraNumber=0):
     from cv2 import VideoCapture, imencode
 
     # initialize the camera
-    cam = VideoCapture(cameraNumber)
+    cam = VideoCapture(cameraNumber)    
+    sleep(5)  # wait for camera setting, otherwise the image will be dark
     retVal, rawData = cam.read()
+    cam.release()
     if not retVal:
         # frame captured returns errors
         return False, None
