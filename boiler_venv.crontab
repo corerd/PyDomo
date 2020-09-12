@@ -1,0 +1,21 @@
+################################################################################
+#                           SCHEDULE BOILER ON/OFF
+#              Using Python venv with --system-site-packages option
+#
+# User scripts and executables must be put in /usr/local/bin/
+PATH = /usr/local/bin:/usr/bin:/bin
+
+# Crontab entries:
+# m h dom mon dow  command
+#
+# Generic approach to execute Python scripts in a virtual environment:
+# * * * * *  PATH_TO_USER_VENV/bin/python PATH_PYTHON_SCRIPT > CRONLOG_FILE 2>&1
+# CRONLOG_FILE saves output and error messages if you want, otherwise
+# it can be replaced by /dev/null
+# See: https://stackoverflow.com/a/50556692
+
+# Boiler Ctrl
+15,45 * * * * /home/corerd/.pyvenv/bin/python /home/corerd/Devel/PyDomo/boilerctrl.py > /var/tmp/boilerctrlout.txt 2>&1
+
+# Power Supply Monitor
+*/10 * * * * /home/corerd/.pyvenv/bin/python /home/corerd/Devel/PyDomo/pwrmonitor-launch.py > /var/tmp/pwrmonitorout.txt 2>&1
