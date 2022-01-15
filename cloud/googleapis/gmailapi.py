@@ -6,6 +6,10 @@ to make requests to Gmail Google API.
 Python 2,7 and 3.6 are fully supported and tested.
 The script may work on other versions of Python 3 though not tested.
 
+@TODO Get rid of pickled data format for token file
+and use json instead, as in the new Gmail Python Quickstart tutorial
+(https://developers.google.com/gmail/api/quickstart/python).
+
 
 PREREQUISITES
 
@@ -240,9 +244,15 @@ def GetAuthTokens(modeIsInteractive=False):
             except RefreshError as e:
                 if modeIsInteractive:
                     if 'invalid_grant' in e.args[0]:
-                        print('invalid_grant\n'
-                        '\tRefresh token is invalid, expired or revoked\n'
-                        'See: https://developers.google.com/identity/protocols/oauth2#expiration')
+                        print('invalid_grant:\n'
+                        '\tRefresh token is invalid, expired or revoked!\n'
+                        'Could be that the refresh token has not been used for 6 months'
+                        'See: https://developers.google.com/identity/protocols/oauth2#expiration'
+                        ''
+                        'One possible solution is to delete the token file and'
+                        're-launch this script to obtain a new OAuth 2.0 tokens set'
+                        'from the Google Authorization Server.'
+                        '')
                         return None
                 raise
         else:
@@ -434,7 +444,7 @@ def main():
     if auth_tokens:
         print('Done')
     else:
-        print('Some error occurred')
+        print('OAuth 2.0 tokens check failure: some error occurred')
 
 
 if __name__ == '__main__':
