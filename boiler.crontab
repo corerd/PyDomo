@@ -8,14 +8,21 @@ PATH = /usr/local/bin:/usr/bin:/bin
 # m h  dom mon dow   command
 ################################################################################
 # Power ON today
-# 30 10 11 1 * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
+# 45 08 04 12 * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
 # Power OFF today
-# 0 11 11 1 * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
+# 15 09 04 12 * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
 #
 # Power ON
 # 5 21 * * * /home/corerd/Devel/PyDomo/boiler-on-picfeedback.sh > /var/tmp/boiler-on.log 2>&1
+# 5  7 * * * /home/corerd/Devel/PyDomo/boiler-on.sh > /var/tmp/boiler-on.log 2>&1
+# 5 21 * * * /home/corerd/Devel/PyDomo/boiler-on.sh > /var/tmp/boiler-on.log 2>&1
 # Power OFF
 # 5 22 * * * /home/corerd/Devel/PyDomo/boiler-off-picfeedback.sh > /var/tmp/boiler-off.log 2>&1
+# 5  8 * * * /home/corerd/Devel/PyDomo/boiler-off.sh > /var/tmp/boiler-off.log 2>&1
+# 5 22 * * * /home/corerd/Devel/PyDomo/boiler-off.sh > /var/tmp/boiler-off.log 2>&1
+#
+# Camera Upload
+# 35 0,6,12,18 * * * /home/corerd/Devel/PyDomo/camupload.py > /var/tmp/camupload.log 2>&1
 #
 # Boiler Ctrl
 15,45 * * * * /home/corerd/Devel/PyDomo/boilerctrl.py > /var/tmp/boilerctrlout.txt 2>&1
