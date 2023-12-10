@@ -62,12 +62,12 @@ def getDicItemByPath(dic, path_to_value):
     return dic[key]
 
 
-def getLocationTempFromSvc(svc_api, search_lat, search_lon):
-    """NEW Use a weather service api to get the current temperature
+def getLocationTempFromSvc(svc_api, search_lat, search_lon, search_name):
+    """Use a weather service api to get the current temperature
     by location coordinates latitude and longitude.
-    'search_name' is used only if the api don't return the city name.
+    'search_name' is used only if the api doesn't return the location name.
 
-    Returns tuple (city, temperature-celsius-degrees),
+    Returns tuple (location_name, temperature-celsius-degrees),
     otherwise an empty tuple if rised some errors.
     """
     request_url = svc_api['request'].format( key=svc_api['key'],
@@ -95,10 +95,12 @@ def getLocationTempFromSvc(svc_api, search_lat, search_lon):
         print_error("%s: string convertion to float error;%s" % (svc_api['name'], sys.exc_info()[0]))
         return ()
     try:
-        location = getDicItemByPath(parsed_json, svc_api['optional-path-to-city-name'])
+        location_name = getDicItemByPath(parsed_json, svc_api['optional-path-to-city-name'])
     except:
-        location = '<default>'
-    return (location, f_temp_c)
+        # API doesn't return the location name
+        # then use the provided one
+        location_name = search_name
+    return (location_name, f_temp_c)
 
 
 def updateLogFromSvcs(weatherSvc):
@@ -108,10 +110,11 @@ def updateLogFromSvcs(weatherSvc):
     then 'city' and 'temperature' fields are replaced by '-'.
     Return value is always 0
     """
+    location_name = weatherSvc['location']['name']
     latitude = weatherSvc['location']['lat']
     longitude = weatherSvc['location']['lon']
     for api in weatherSvc['api-list']:
-        locationTemp = getLocationTempFromSvc(api, latitude, longitude)
+        locationTemp = getLocationTempFromSvc(api, latitude, longitude, location_name)
         if len(locationTemp) <= 0:
             # error
             logging.info("%s;-;-" % api['name'])
