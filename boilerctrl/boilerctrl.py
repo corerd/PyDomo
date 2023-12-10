@@ -38,7 +38,7 @@ from time import time, localtime, sleep, strftime
 
 from cloud.upload import upload_datastore
 from cloud.cloudcfg import ConfigDataLoad, checkDatastore
-from cloud.weather import DEFAULT_CFG_FILE_PATH as CLOUD_DEFUALT_PATH, getLocationTemp, getLocationTempFromSvc
+from cloud.weather import DEFAULT_CFG_FILE_PATH as CLOUD_DEFUALT_PATH, getLocationTempFromSvc
 from camrecorder.camsnapshot import DEFAULT_CFG_FILE_PATH as CAMRECORDER_DEFUALT_PATH, snap_shot
 
 
@@ -89,21 +89,6 @@ def getExternalTempFromSvcs(weatherSvc):
     # compute, log and return average temperature
     c_temp = c_temp / nsvc
     logging.info("ext temp;%s;%0.1f" % ('AVERAGE', c_temp))
-    return c_temp
-
-
-def getExternalTemp(weatherSrvCfg):
-    """OLD Get the external temperature from Wunderground service only.
-    If the web service is not available, then returns None.
-    """
-    locationTemp = getLocationTemp( weatherSrvCfg['wu-api-key'],
-                                    weatherSrvCfg['wu-search-country'],
-                                    weatherSrvCfg['wu-search-city'] )
-    if len(locationTemp) <= 0:
-        logging.error('weather service is not available')
-        return None
-    c_temp = locationTemp[1]
-    logging.info("ext temp;%0.1f" % c_temp)
     return c_temp
 
 
@@ -162,7 +147,6 @@ def crank(cloud_cfg, camrecorder_cfg):
     boilerstatus = ConfigDataLoad(boilerstatus_file, DEFAULT_BOILERSTATUS)
     boilerstatusChanged = False
 
-    #OLD externalTemp = getExternalTemp(cloud_cfg.data)
     externalTemp = getExternalTempFromSvcs( cloud_cfg.data['weather-svc'] )
 
     current_time = int(time())
