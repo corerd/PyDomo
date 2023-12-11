@@ -59,12 +59,18 @@ def print_error(msg):
     print('%s;%s' % (time.strftime("%Y-%m-%d %H:%M:%S"), msg), file=sys.stderr)
 
 
-def getDicItemByPath(dic, path_to_value):
-    key_list = path_to_value.split('/')
-    for key in key_list[:-1]:
-        dic = dic[key]
-    key = key_list[-1]
-    return dic[key]
+def getJsonItemByPath(nested_json_value, path_to_field):
+    """Return the value of nested field in JSON object.
+    path_to_field is a string consisting of individual keys separated by '/'.
+    If the JSON object contains arrays, the key is its numeric index.
+    """
+    for key in path_to_field.split("/"):
+        if key.isdigit():
+            # Accessing array
+            nested_json_value = nested_json_value[int(key)]
+        else:
+            nested_json_value = nested_json_value.get(key)
+    return nested_json_value
 
 
 def getLocationTempFromSvc(svc_api, search_lat, search_lon, search_name):
@@ -86,8 +92,9 @@ def getLocationTempFromSvc(svc_api, search_lat, search_lon, search_name):
         print_error("%s: urllib2 error;%s" % (svc_api['name'], sys.exc_info()[0]))
         return ()
     try:
-        parsed_json = json.loads(json_string)
-        temp_c = getDicItemByPath(parsed_json, svc_api['path-to-temperature-value'])
+        # Parse the JSON object
+        json_obj = json.loads(json_string)
+        temp_c = getJsonItemByPath(json_obj, svc_api['path-to-temperature-value'])
     except:
         # See: http://stackoverflow.com/a/4990739
         #print(json_string, file=sys.stderr)
@@ -100,7 +107,7 @@ def getLocationTempFromSvc(svc_api, search_lat, search_lon, search_name):
         print_error("%s: string convertion to float error;%s" % (svc_api['name'], sys.exc_info()[0]))
         return ()
     try:
-        location_name = getDicItemByPath(parsed_json, svc_api['optional-path-to-city-name'])
+        location_name = getJsonItemByPath(json_obj, svc_api['optional-path-to-city-name'])
     except:
         # API doesn't return the location name
         # then use the provided one

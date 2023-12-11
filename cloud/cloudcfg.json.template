@@ -41,8 +41,8 @@
                 "doc": "https://www.weatherbit.io/api",
                 "request": "https://api.weatherbit.io/v2.0/current?key={key}&lat={lat}&lon={lon}",
                 "direct_request": "https://api.weatherbit.io/v2.0/current?key=7e010a88386142e2aaf8668eb112a4cf&lat=45.197262&lon=8.66834",
-                "optional-path-to-city-name": "data[0]/city_name",
-                "path-to-temperature-value": "data[0]/temp"
+                "optional-path-to-city-name": "data/0/city_name",
+                "path-to-temperature-value": "data/0/temp"
             },
             {
                 "name": "WeatherAPI",
