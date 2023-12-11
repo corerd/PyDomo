@@ -26,11 +26,16 @@ from __future__ import print_function
 
 import logging
 import time
-import urllib2
 import json
 import sys
-from os import mkdir
-from os.path import dirname, join, isdir, realpath
+from os.path import dirname, join, realpath
+
+try:
+    # For Python 3.0 and later
+    from urllib.request import urlopen
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from urllib2 import urlopen
 
 
 # Globals
@@ -73,7 +78,7 @@ def getLocationTempFromSvc(svc_api, search_lat, search_lon, search_name):
     request_url = svc_api['request'].format( key=svc_api['key'],
                                              lat=search_lat, lon=search_lon )
     try:
-        f = urllib2.urlopen(request_url)
+        f = urlopen(request_url)
         json_string = f.read()
         f.close()
     except:
